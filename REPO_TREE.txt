@@ -1,0 +1,68 @@
+smart-campus/
+├── .github/
+│   ├── workflows/ci.yml
+│   └── PULL_REQUEST_TEMPLATE.md
+├── docs/
+│   ├── requirements/
+│   │   ├── SRS.md
+│   │   └── backlog.md
+│   ├── modelling/
+│   │   ├── modelling.md
+│   │   ├── use-case.md
+│   │   ├── class-diagram.md
+│   │   └── sequence-diagrams/
+│   │       ├── booking.md
+│   │       └── seat-booking.md
+│   ├── architecture/
+│   │   ├── architecture.md
+│   │   └── openapi.yaml
+│   ├── database/
+│   │   ├── erd.md
+│   │   └── rbac.md
+│   └── testing/
+│       ├── test-plan.md
+│       ├── test-cases.md
+│       └── coverage.md
+├── frontend/
+│   ├── public/
+│   └── src/
+│       ├── assets/
+│       ├── components/
+│       ├── hooks/
+│       ├── layouts/
+│       ├── pages/
+│       ├── services/
+│       ├── types/
+│       ├── utils/
+│       ├── router/
+│       ├── App.tsx
+│       └── main.tsx
+├── backend/
+│   ├── src/main/java/com/smartcampus/
+│   │   ├── config/
+│   │   ├── controller/
+│   │   ├── dto/
+│   │   ├── entity/
+│   │   ├── exception/
+│   │   ├── repository/
+│   │   ├── security/
+│   │   ├── service/
+│   │   └── SmartCampusApplication.java
+│   ├── src/main/resources/application.yml
+│   ├── src/test/java/com/smartcampus/
+│   └── pom.xml
+├── database/
+│   ├── migrations/
+│   └── seeds/
+├── tests/
+│   ├── api/
+│   ├── e2e/
+│   ├── fixtures/
+│   ├── helpers/
+│   └── playwright.config.ts
+├── infra/docker/
+├── docker-compose.yml
+├── .env.example
+├── .gitignore
+├── README.md
+└── TEAM_STRUCTURE.md
