@@ -1,13 +1,14 @@
 {
   "name": "tests",
   "version": "1.0.0",
-  "description": "",
+  "description": "Playwright API + E2E tests cho Smart Campus",
   "main": "index.js",
   "scripts": {
-  "test": "playwright test",
-  "test:api": "playwright test --project=api",
-  "test:e2e": "playwright test --project=e2e",
-  "report": "playwright show-report"
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:e2e": "playwright test --project=e2e",
+    "test:pending": "RUN_PENDING=true playwright test --project=api",
+    "report": "playwright show-report"
   },
   "keywords": [],
   "author": "",
