@@ -1,26 +1,39 @@
 package com.smartcampus.entity;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
+@Entity
+@Table(name = "rooms")
 public class Room {
 
-    private String id;
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "room_id")
+    private Long id;
+
+    @Column(name = "room_code", nullable = false, unique = true, length = 20)
+    private String code;
+
+    @Column(nullable = false, length = 100)
     private String name;
-    private String type;
 
-    public Room(String id, String name, String type) {
-        this.id = id;
-        this.name = name;
-        this.type = type;
+    @Column(length = 100)
+    private String location;
+
+    @Column(nullable = false, length = 20)
+    private String status;
+
+    protected Room() {
     }
 
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getType() {
-        return type;
-    }
+    public Long getId() { return id; }
+    public String getCode() { return code; }
+    public String getName() { return name; }
+    public String getLocation() { return location; }
+    public String getStatus() { return status; }
 }
