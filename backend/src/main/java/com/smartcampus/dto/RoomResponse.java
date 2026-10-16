@@ -1,8 +1,10 @@
 package com.smartcampus.dto;
 
 public record RoomResponse(
-        String id,
+        Long id,
+        String code,
         String name,
-        String type
+        String location,
+        String status
 ) {
 }
