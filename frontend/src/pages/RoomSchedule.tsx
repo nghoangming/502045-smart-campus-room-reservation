@@ -1,273 +1,123 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { apiRequest, campusDate } from "../services/api";
+import type { Booking, Room } from "../services/api";
+
+type RoomScheduleData = { room: Room; bookings: Booking[] };
 
 function RoomSchedule() {
-    const [room, setRoom] = useState("All Rooms");
-    const [date, setDate] = useState("2026-10-07");
+    const [roomCode, setRoomCode] = useState("All Rooms");
+    const [date, setDate] = useState(campusDate);
+    const [startTime, setStartTime] = useState("08:00");
+    const [endTime, setEndTime] = useState("10:00");
+    const [rooms, setRooms] = useState<Room[]>([]);
+    const [schedules, setSchedules] = useState<RoomScheduleData[]>([]);
+    const [availableRooms, setAvailableRooms] = useState<Room[]>([]);
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(true);
 
-    const schedules = [
-        {
-            room: "A101",
-            subject: "Database Systems",
-            lecturer: "Nguyen Van A",
-            time: "08:00 - 10:00",
-            status: "Occupied",
-        },
-        {
-            room: "A102",
-            subject: "Web Programming",
-            lecturer: "Tran Thi B",
-            time: "08:00 - 10:00",
-            status: "Occupied",
-        },
-        {
-            room: "B201",
-            subject: "Software Engineering",
-            lecturer: "Le Van C",
-            time: "10:00 - 12:00",
-            status: "Occupied",
-        },
-        {
-            room: "B202",
-            subject: "Data Structures",
-            lecturer: "Pham Van D",
-            time: "13:00 - 15:00",
-            status: "Occupied",
-        },
-        {
-            room: "C301",
-            subject: "Computer Networks",
-            lecturer: "Nguyen Thi E",
-            time: "13:00 - 15:00",
-            status: "Occupied",
-        },
-        {
-            room: "C302",
-            subject: "No class",
-            lecturer: "-",
-            time: "15:00 - 17:00",
-            status: "Available",
-        },
-    ];
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        setError("");
+        setSchedules([]);
+        setAvailableRooms([]);
+        if (!date || !startTime || !endTime || startTime >= endTime) {
+            setError("Please select a date and a start time earlier than the end time.");
+            setLoading(false);
+            return;
+        }
+        async function loadRooms() {
+            const roomList = await apiRequest<Room[]>("/rooms");
+            const query = new URLSearchParams({ date, startTime, endTime });
+            const [roomSchedules, available] = await Promise.all([
+                Promise.all(roomList.map(async (room) => ({
+                    room,
+                    bookings: await apiRequest<Booking[]>(`/rooms/${room.id}/schedule?date=${encodeURIComponent(date)}`),
+                }))),
+                apiRequest<Room[]>(`/rooms/availability?${query}`),
+            ]);
+            if (!active) return;
+            setRooms(roomList);
+            setSchedules(roomSchedules);
+            setAvailableRooms(available);
+        }
+        loadRooms().catch((exception: unknown) => {
+            if (active) setError(exception instanceof Error ? exception.message : "Unable to load rooms.");
+        }).finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [date, startTime, endTime]);
 
-    const filteredSchedules =
-        room === "All Rooms"
-            ? schedules
-            : schedules.filter((item) => item.room === room);
+    const filteredSchedules = schedules.filter(({ room }) => roomCode === "All Rooms" || room.code === roomCode);
+    const filteredAvailable = availableRooms.filter((room) => roomCode === "All Rooms" || room.code === roomCode);
+    const formatTime = (value: string) => new Intl.DateTimeFormat("en-GB", {
+        timeZone: "Asia/Ho_Chi_Minh", hour: "2-digit", minute: "2-digit",
+    }).format(new Date(value));
 
     return (
-        <div
-            style={{
-                minHeight: "100vh",
-                backgroundColor: "#f5f7fb",
-                padding: "30px",
-                boxSizing: "border-box",
-                fontFamily: "Arial",
-            }}
-        >
-            <h1
-                style={{
-                    margin: "0 0 8px",
-                    color: "#111827",
-                }}
-            >
-                Room Schedule
-            </h1>
-
-            <p
-                style={{
-                    marginBottom: "30px",
-                    color: "#6b7280",
-                }}
-            >
-                View room schedules and availability
-            </p>
-
-            {/* Filter */}
-            <div
-                style={{
-                    backgroundColor: "white",
-                    padding: "20px",
-                    borderRadius: "10px",
-                    marginBottom: "20px",
-                    display: "flex",
-                    gap: "20px",
-                    alignItems: "center",
-                }}
-            >
-                <div>
-                    <label
-                        style={{
-                            display: "block",
-                            marginBottom: "6px",
-                            fontWeight: "bold",
-                        }}
-                    >
-                        Date
-                    </label>
-
-                    <input
-                        type="date"
-                        value={date}
-                        onChange={(e) => setDate(e.target.value)}
-                        style={{
-                            padding: "9px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                        }}
-                    />
-                </div>
-
-                <div>
-                    <label
-                        style={{
-                            display: "block",
-                            marginBottom: "6px",
-                            fontWeight: "bold",
-                        }}
-                    >
-                        Room
-                    </label>
-
-                    <select
-                        value={room}
-                        onChange={(e) => setRoom(e.target.value)}
-                        style={{
-                            padding: "10px",
-                            border: "1px solid #d1d5db",
-                            borderRadius: "6px",
-                            minWidth: "160px",
-                        }}
-                    >
-                        <option value="All Rooms">
-                            All Rooms
-                        </option>
-                        <option value="A101">A101</option>
-                        <option value="A102">A102</option>
-                        <option value="B201">B201</option>
-                        <option value="B202">B202</option>
-                        <option value="C301">C301</option>
-                        <option value="C302">C302</option>
+        <main style={{ minHeight: "100vh", background: "#f5f7fb", padding: 30, fontFamily: "Arial, sans-serif", color: "#17233c" }}>
+            <Link to="/dashboard">← Dashboard</Link>
+            <h1>Room Schedule</h1>
+            <p>View room schedules and availability. All times are Vietnam time (UTC+7).</p>
+            <div style={{ display: "flex", gap: 20, flexWrap: "wrap", background: "white", padding: 20, borderRadius: 10 }}>
+                <label>Date<br />
+                    <input type="date" value={date} onChange={(event) => setDate(event.target.value)} style={INPUT_STYLE} />
+                </label>
+                <label>Room<br />
+                    <select value={roomCode} onChange={(event) => setRoomCode(event.target.value)} style={INPUT_STYLE}>
+                        <option value="All Rooms">All Rooms</option>
+                        {rooms.map((room) => <option key={room.id} value={room.code}>{room.code}</option>)}
                     </select>
-                </div>
-
-                <button
-                    type="button"
-                    style={{
-                        marginTop: "23px",
-                        padding: "10px 18px",
-                        border: "none",
-                        borderRadius: "6px",
-                        backgroundColor: "#2563eb",
-                        color: "white",
-                        cursor: "pointer",
-                    }}
-                >
-                    + Add Schedule
-                </button>
+                </label>
+                <label>Start time<br />
+                    <input type="time" value={startTime} onChange={(event) => setStartTime(event.target.value)} style={INPUT_STYLE} />
+                </label>
+                <label>End time<br />
+                    <input type="time" value={endTime} onChange={(event) => setEndTime(event.target.value)} style={INPUT_STYLE} />
+                </label>
             </div>
 
-            <div
-                style={{
-                    backgroundColor: "white",
-                    padding: "20px",
-                    borderRadius: "10px",
-                }}
-            >
-                <h2
-                    style={{
-                        marginTop: 0,
-                        color: "#111827",
-                    }}
-                >
-                    Schedule: {date}
-                </h2>
+            {loading && <p role="status">Loading rooms...</p>}
+            {error && <p role="alert" style={{ color: "#b91c1c" }}>{error}</p>}
 
-                <div
-                    style={{
-                        overflowX: "auto",
-                    }}
-                >
-                    <table
-                        style={{
-                            width: "100%",
-                            borderCollapse: "collapse",
-                            minWidth: "700px",
-                        }}
-                    >
-                        <thead>
-                            <tr
-                                style={{
-                                    backgroundColor: "#f9fafb",
-                                }}
-                            >
-                                <th style={thStyle}>Room</th>
-                                <th style={thStyle}>Subject</th>
-                                <th style={thStyle}>Lecturer</th>
-                                <th style={thStyle}>Time</th>
-                                <th style={thStyle}>Status</th>
-                            </tr>
-                        </thead>
-
+            <section style={{ marginTop: 24, background: "white", padding: 20, borderRadius: 10 }}>
+                <h2>Schedule: {date}</h2>
+                <div style={{ overflowX: "auto" }}>
+                    <table aria-label="Room schedules" style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead><tr>
+                            <th style={CELL_STYLE}>Room</th><th style={CELL_STYLE}>Location</th>
+                            <th style={CELL_STYLE}>Time</th><th style={CELL_STYLE}>Status</th>
+                        </tr></thead>
                         <tbody>
-                            {filteredSchedules.map((item) => (
-                                <tr key={item.room}>
-                                    <td style={tdStyle}>
-                                        <strong>{item.room}</strong>
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        {item.subject}
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        {item.lecturer}
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        {item.time}
-                                    </td>
-
-                                    <td style={tdStyle}>
-                                        <span
-                                            style={{
-                                                padding: "5px 10px",
-                                                borderRadius: "5px",
-                                                backgroundColor:
-                                                    item.status ===
-                                                    "Available"
-                                                        ? "#dcfce7"
-                                                        : "#dbeafe",
-                                                color:
-                                                    item.status ===
-                                                    "Available"
-                                                        ? "#15803d"
-                                                        : "#2563eb",
-                                            }}
-                                        >
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
+                            {filteredSchedules.flatMap(({ room, bookings }) => bookings.length > 0
+                                ? bookings.map((booking) => <tr key={`${room.id}-${booking.bookingId}`}>
+                                    <td style={CELL_STYLE}>{room.code}</td><td style={CELL_STYLE}>{room.location ?? "—"}</td>
+                                    <td style={CELL_STYLE}>{formatTime(booking.startTime)} - {formatTime(booking.endTime)}</td>
+                                    <td style={CELL_STYLE}>{booking.status}</td>
+                                </tr>)
+                                : [<tr key={room.id}>
+                                    <td style={CELL_STYLE}>{room.code}</td><td style={CELL_STYLE}>{room.location ?? "—"}</td>
+                                    <td style={CELL_STYLE}>No booking on this date</td>
+                                    <td style={CELL_STYLE}>{["INACTIVE", "MAINTENANCE", "CLOSED"].includes(room.status.toUpperCase()) ? room.status : "Available"}</td>
+                                </tr>])}
                         </tbody>
                     </table>
                 </div>
-            </div>
-        </div>
+                {!loading && !error && filteredSchedules.length === 0 && <p>No rooms found.</p>}
+            </section>
+
+            <section aria-label="Available rooms" style={{ marginTop: 24, background: "white", padding: 20, borderRadius: 10 }}>
+                <h2>Available rooms: {startTime} - {endTime}</h2>
+                <p>Rooms available for the whole selected time range.</p>
+                {!loading && !error && (filteredAvailable.length > 0
+                    ? <ul>{filteredAvailable.map((room) => <li key={room.id}>{room.code} — {room.name}</li>)}</ul>
+                    : <p>No rooms available for this time range.</p>)}
+            </section>
+        </main>
     );
 }
 
-const thStyle = {
-    textAlign: "left" as const,
-    padding: "14px",
-    borderBottom: "1px solid #e5e7eb",
-    color: "#374151",
-};
-
-const tdStyle = {
-    padding: "14px",
-    borderBottom: "1px solid #e5e7eb",
-    color: "#4b5563",
-};
+const CELL_STYLE = { textAlign: "left" as const, padding: 14, borderBottom: "1px solid #e5e7eb" };
+const INPUT_STYLE = { padding: 9, border: "1px solid #d1d5db", borderRadius: 6, marginTop: 6 };
 
 export default RoomSchedule;

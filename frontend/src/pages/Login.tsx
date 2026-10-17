@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login } from "../services/api";
 
 function Login() {
     const [username, setUsername] = useState("");
@@ -11,8 +12,8 @@ function Login() {
 
     const navigate = useNavigate();
 
-    const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
-        e.preventDefault();
+    const handleLogin = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
         setError("");
 
         if (!username.trim() || !password) {
@@ -22,12 +23,12 @@ function Login() {
 
         setLoading(true);
 
-        if (username.trim() === "admin" && password === "admin123") {
-            localStorage.setItem("smartCampusLoggedIn", "true");
-            localStorage.setItem("smartCampusUsername", username.trim());
+        try {
+            await login(username.trim(), password);
             navigate("/dashboard", { replace: true });
-        } else {
-            setError("Incorrect username or password. Please try again.");
+        } catch (exception) {
+            setError(exception instanceof Error ? exception.message : "Unable to sign in. Please try again.");
+        } finally {
             setLoading(false);
         }
     };
@@ -171,7 +172,7 @@ function Login() {
                                 Username: <b>admin</b>
                             </span>
                             <span>
-                                Password: <b>admin123</b>
+                                Password: <b>Admin@123</b>
                             </span>
                         </div>
                     </form>

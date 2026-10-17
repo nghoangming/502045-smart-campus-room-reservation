@@ -1,16 +1,15 @@
 import { test, expect } from '@playwright/test';
 import { getJson, firstRoomId, isoDate } from '../../helpers/api';
-import { pending } from '../../helpers/pending';
 import { NOT_FOUND_ROOM_ID } from '../../fixtures/rooms';
 
 /**
- * Hợp đồng GIẢ ĐỊNH (chưa có trong openapi.yaml, cần chốt với M2):
+ * Hợp đồng API lịch dùng bookings PostgreSQL:
  *   GET /api/v1/rooms/{id}/schedule?date=YYYY-MM-DD
- *   200 -> mảng các tiết/booking, mỗi phần tử có start & end
+ *   200 -> mảng booking với startTime và endTime
  *   400 -> date sai định dạng / thiếu
  *   404 -> phòng không tồn tại
  */
-pending('Schedule API @pending (chờ M2 implement GET /rooms/{id}/schedule)', () => {
+test.describe('Schedule API - PostgreSQL bookings', () => {
   test('lấy lịch phòng theo ngày trả 200 và là mảng', async ({ request }) => {
     const id = await firstRoomId(request);
     const { res, body } = await getJson<unknown[]>(request, `/rooms/${id}/schedule?date=${isoDate()}`);
@@ -20,12 +19,12 @@ pending('Schedule API @pending (chờ M2 implement GET /rooms/{id}/schedule)', (
 
   test('mỗi mục lịch có start và end, start < end', async ({ request }) => {
     const id = await firstRoomId(request);
-    const { body } = await getJson<Array<{ start: string; end: string }>>(
+    const { body } = await getJson<Array<{ startTime: string; endTime: string }>>(
       request,
       `/rooms/${id}/schedule?date=${isoDate()}`,
     );
     for (const slot of body) {
-      expect(new Date(slot.start).getTime()).toBeLessThan(new Date(slot.end).getTime());
+      expect(new Date(slot.startTime).getTime()).toBeLessThan(new Date(slot.endTime).getTime());
     }
   });
 

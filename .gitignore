@@ -3,3 +3,9 @@ tests/node_modules/
 tests/playwright-report/
 tests/test-results/
 tests/.env
+
+# Local configuration and generated build files
+.env
+backend/target/
+frontend/node_modules/
+frontend/dist/

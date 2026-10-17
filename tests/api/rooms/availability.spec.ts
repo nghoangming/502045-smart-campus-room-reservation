@@ -1,61 +1,37 @@
 import { test, expect } from '@playwright/test';
-import { getJson, firstRoomId, isoDate } from '../../helpers/api';
-import { pending } from '../../helpers/pending';
-import { NOT_FOUND_ROOM_ID } from '../../fixtures/rooms';
+import { getJson } from '../../helpers/api';
 
-/**
- * Hợp đồng GIẢ ĐỊNH (cần chốt với M2 trong openapi.yaml):
- *   GET /api/v1/rooms/{id}/availability?date=YYYY-MM-DD&start=HH:mm&end=HH:mm
- *   200 -> { available: boolean }
- *   400 -> thiếu tham số, định dạng sai, hoặc end <= start
- *   404 -> phòng không tồn tại
- */
-pending('Availability API @pending (chờ M2 implement GET /rooms/{id}/availability)', () => {
-  const query = (date: string, start: string, end: string) =>
-    `date=${date}&start=${start}&end=${end}`;
+type Room = { id: number; code: string; status: string };
 
-  test('khung giờ trống trả available = true', async ({ request }) => {
-    const id = await firstRoomId(request);
-    const { res, body } = await getJson<{ available: boolean }>(
-      request,
-      `/rooms/${id}/availability?${query('2099-01-01', '08:00', '10:00')}`,
-    );
+test.describe('Availability API - real PostgreSQL bookings', () => {
+  test('loại phòng trùng giờ và bảo trì, bỏ qua lịch đã hủy', async ({ request }) => {
+    const { res, body } = await getJson<Room[]>(request,
+      '/rooms/availability?date=2026-10-16&startTime=08:00&endTime=10:00');
     expect(res.status()).toBe(200);
-    expect(body.available).toBe(true);
+    expect(body.map(room => room.code).sort()).toEqual(['B201', 'C301', 'C302']);
   });
 
-  test('response có trường available kiểu boolean', async ({ request }) => {
-    const id = await firstRoomId(request);
-    const { body } = await getJson<{ available: boolean }>(
-      request,
-      `/rooms/${id}/availability?${query(isoDate(), '08:00', '10:00')}`,
-    );
-    expect(typeof body.available).toBe('boolean');
+  test('booking kết thúc đúng giờ bắt đầu không làm phòng bị bận', async ({ request }) => {
+    const { res, body } = await getJson<Room[]>(request,
+      '/rooms/availability?date=2026-10-16&startTime=10:00&endTime=11:00');
+    expect(res.status()).toBe(200);
+    expect(body.map(room => room.code)).toContain('A101');
+    expect(body.map(room => room.code)).not.toContain('A102');
   });
 
   test('end trước hoặc bằng start trả 400', async ({ request }) => {
-    const id = await firstRoomId(request);
-    const { res } = await getJson(request, `/rooms/${id}/availability?${query(isoDate(), '10:00', '08:00')}`);
-    expect(res.status()).toBe(400);
+    for (const endTime of ['08:00', '10:00']) {
+      const { res } = await getJson(request,
+        `/rooms/availability?date=2026-10-16&startTime=10:00&endTime=${endTime}`);
+      expect(res.status()).toBe(400);
+    }
   });
 
-  test('thiếu tham số start/end trả 400', async ({ request }) => {
-    const id = await firstRoomId(request);
-    const { res } = await getJson(request, `/rooms/${id}/availability?date=${isoDate()}`);
-    expect(res.status()).toBe(400);
-  });
-
-  test('giờ sai định dạng trả 400', async ({ request }) => {
-    const id = await firstRoomId(request);
-    const { res } = await getJson(request, `/rooms/${id}/availability?${query(isoDate(), '25:99', '26:00')}`);
-    expect(res.status()).toBe(400);
-  });
-
-  test('phòng không tồn tại trả 404', async ({ request }) => {
-    const { res } = await getJson(
-      request,
-      `/rooms/${NOT_FOUND_ROOM_ID}/availability?${query(isoDate(), '08:00', '10:00')}`,
-    );
-    expect(res.status()).toBe(404);
+  test('thiếu tham số hoặc giờ sai định dạng trả 400', async ({ request }) => {
+    const missing = await getJson(request, '/rooms/availability?date=2026-10-16');
+    expect(missing.res.status()).toBe(400);
+    const invalid = await getJson(request,
+      '/rooms/availability?date=2026-10-16&startTime=25:99&endTime=26:00');
+    expect(invalid.res.status()).toBe(400);
   });
 });

@@ -4,4 +4,4 @@ export const stubRooms = [
   { id: 'SR101', name: 'Study Room 101', type: 'STUDY' },
 ];
 
-export const NOT_FOUND_ROOM_ID = 'KHONG-TON-TAI-999';
+export const NOT_FOUND_ROOM_ID = '999999999';

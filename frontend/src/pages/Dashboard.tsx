@@ -1,6 +1,11 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { clearLogin } from "../services/api";
+import type { User } from "../services/api";
 
 function Dashboard() {
+    const navigate = useNavigate();
+    const currentUser: User | null = JSON.parse(localStorage.getItem("smartCampusUser") ?? "null");
     const [activeMenu, setActiveMenu] = useState("Dashboard");
 
     const menuItems = [
@@ -83,7 +88,10 @@ function Dashboard() {
                     {menuItems.map((item) => (
                         <div
                             key={item}
-                            onClick={() => setActiveMenu(item)}
+                            onClick={() => {
+                                setActiveMenu(item);
+                                if (item === "Room Schedule" || item === "Rooms") navigate("/roomschedule");
+                            }}
                             style={{
                                 padding: "12px 14px",
                                 marginBottom: "6px",
@@ -119,7 +127,9 @@ function Dashboard() {
                             cursor: "pointer",
                         }}
                     >
-                        Logout
+                        <button type="button" onClick={() => { clearLogin(); navigate("/login", { replace: true }); }}>
+                            Logout
+                        </button>
                     </div>
                 </div>
             </aside>
@@ -158,7 +168,7 @@ function Dashboard() {
                                 color: "#6b7280",
                             }}
                         >
-                            Welcome back! Here's what's happening today.
+                            Dashboard preview. Open Room Schedule to view current room data.
                         </p>
                     </div>
 
@@ -192,7 +202,7 @@ function Dashboard() {
                                     color: "#111827",
                                 }}
                             >
-                                Trí Nguyên
+                                {currentUser?.fullName ?? "Campus user"}
                             </div>
 
                             <div
@@ -201,7 +211,7 @@ function Dashboard() {
                                     color: "#6b7280",
                                 }}
                             >
-                                Administrator
+                                {currentUser?.role ?? "User"}
                             </div>
                         </div>
                     </div>
@@ -410,6 +420,7 @@ function Dashboard() {
                             </h2>
 
                             <button
+                                onClick={() => navigate("/roomschedule")}
                                 style={{
                                     border: "none",
                                     backgroundColor: "#eff6ff",
