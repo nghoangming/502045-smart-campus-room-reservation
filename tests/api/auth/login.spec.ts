@@ -1,17 +1,16 @@
 import { test, expect } from '@playwright/test';
 import { postJson } from '../../helpers/api';
-import { pending } from '../../helpers/pending';
 import { apiUsers } from '../../fixtures/users';
 
 /**
- * Hợp đồng GIẢ ĐỊNH (cần chốt với M2/M3 — JWT + RBAC):
+ * Hợp đồng đăng nhập dùng tài khoản BCrypt từ seed PostgreSQL:
  *   POST /api/v1/auth/login   body { email, password }
  *   200 -> { token: string, user: { role } }
  *   400 -> thiếu email/password
  *   401 -> sai email hoặc mật khẩu
- * Hiện tại backend CHƯA có endpoint này (frontend đang kiểm tra admin/admin123 cứng).
+ * Seed chỉ được nạp khi backend chạy profile dev.
  */
-pending('Auth API @pending (chờ M2 implement POST /auth/login + M3 seed users)', () => {
+test.describe('Auth API - PostgreSQL seeded accounts', () => {
   test('đăng nhập đúng trả 200 kèm token JWT', async ({ request }) => {
     const { res, body } = await postJson<{ token: string }>(request, '/auth/login', apiUsers.admin);
     expect(res.status()).toBe(200);

@@ -5,6 +5,7 @@ test.describe('Room Schedule (UI)', () => {
   test.beforeEach(async ({ page }) => {
     await loginAsAdminUi(page);
     await page.goto('/roomschedule');
+    await page.locator('input[type="date"]').fill('2026-10-16');
   });
 
   test('hiển thị tiêu đề và bảng lịch', async ({ page }) => {
@@ -29,5 +30,17 @@ test.describe('Room Schedule (UI)', () => {
   test('đổi ngày cập nhật tiêu đề Schedule', async ({ page }) => {
     await page.locator('input[type="date"]').fill('2026-10-20');
     await expect(page.getByRole('heading', { name: 'Schedule: 2026-10-20' })).toBeVisible();
+  });
+
+  test('phòng trống phản ánh booking và trạng thái bảo trì từ database', async ({ page }) => {
+    const available = page.getByRole('region', { name: 'Available rooms', exact: true });
+    await expect(available.getByRole('listitem')).toHaveCount(3);
+    await expect(available).toContainText('C301');
+    await expect(available).not.toContainText('A101');
+    await expect(available).not.toContainText('B202');
+    await page.getByLabel('Start time').fill('10:00');
+    await page.getByLabel('End time').fill('11:00');
+    await expect(available).toContainText('A101');
+    await expect(available).not.toContainText('A102');
   });
 });

@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
 import RoomSchedule from "../pages/RoomSchedule";
+import RequireLogin from "../components/RequireLogin";
 
 function AppRouter() {
     return (
@@ -18,12 +19,12 @@ function AppRouter() {
 
                 <Route
                     path="/dashboard"
-                    element={<Dashboard />}
+                    element={<RequireLogin><Dashboard /></RequireLogin>}
                 />
 
                 <Route
                     path="/roomschedule"
-                    element={<RoomSchedule />}
+                    element={<RequireLogin><RoomSchedule /></RequireLogin>}
                 />
 
                 <Route
