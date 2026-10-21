@@ -4,6 +4,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -20,8 +21,15 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(ReservationConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleConflict(ReservationConflictException ex) {
+        return new ErrorResponse(409, ex.getMessage());
+    }
+
     @ExceptionHandler({IllegalArgumentException.class, MissingServletRequestParameterException.class,
-            MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class})
+            MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class,
+            MethodArgumentNotValidException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public ErrorResponse handleBadRequest(Exception ex) {
         return new ErrorResponse(400, ex.getMessage() == null ? "Invalid request" : ex.getMessage());
