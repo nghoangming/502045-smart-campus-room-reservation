@@ -1,20 +1,24 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 function Login() {
+    // 1. Quản lý trạng thái dữ liệu nhập
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
+
+    // 2. Quản lý trạng thái giao diện UI
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
 
     const navigate = useNavigate();
 
-    const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+    // 3. Xử lý Logic khi bấm Đăng nhập
+    const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError("");
 
+        // Kiểm tra trống dữ liệu
         if (!username.trim() || !password) {
             setError("Please enter both username and password.");
             return;
@@ -22,13 +26,50 @@ function Login() {
 
         setLoading(true);
 
-        if (username.trim() === "admin" && password === "admin123") {
-            localStorage.setItem("smartCampusLoggedIn", "true");
-            localStorage.setItem("smartCampusUsername", username.trim());
-            navigate("/dashboard", { replace: true });
-        } else {
-            setError("Incorrect username or password. Please try again.");
-            setLoading(false);
+        try {
+            /* 
+               =============================================================
+               KHI KẾT NỐI VỚI BACKEND SPRING BOOT, BẠN BỎ COMMENT ĐOẠN NÀY:
+               =============================================================
+               
+               const response = await fetch("http://localhost:8080/api/auth/login", {
+                   method: "POST",
+                   headers: {
+                       "Content-Type": "application/json",
+                   },
+                   body: JSON.stringify({
+                       username: username.trim(),
+                       password: password,
+                   }),
+               });
+
+               if (response.ok) {
+                   const data = await response.json();
+                   localStorage.setItem("smartCampusToken", data.token);
+                   localStorage.setItem("smartCampusLoggedIn", "true");
+                   localStorage.setItem("smartCampusUsername", username.trim());
+                   navigate("/dashboard", { replace: true });
+                   return;
+               } else {
+                   setError("Incorrect username or password. Please try again.");
+                   return;
+               }
+            */
+
+            // GIẢ LẬP XỬ LÝ (MOCK DATA) VỚI ĐỘ TRỄ 1 GIÂY ĐỂ HIỂN THỊ UI LOADING:
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+
+            if (username.trim() === "admin" && password === "admin123") {
+                localStorage.setItem("smartCampusLoggedIn", "true");
+                localStorage.setItem("smartCampusUsername", username.trim());
+                navigate("/dashboard", { replace: true });
+            } else {
+                setError("Incorrect username or password. Please try again.");
+            }
+        } catch (err) {
+            setError("Unable to connect to the server. Please try again later.");
+        } finally {
+            setLoading(false); // Đảm bảo luôn tắt hiệu ứng loading khi hoàn thành
         }
     };
 
@@ -38,6 +79,7 @@ function Login() {
             <div className="login-decoration login-decoration-two"></div>
 
             <div className="login-layout">
+                {/* Cột trái: Thương hiệu & Lời chào */}
                 <section className="login-intro">
                     <div className="brand-lockup">
                         <div className="brand-mark">
@@ -75,6 +117,7 @@ function Login() {
                     </div>
                 </section>
 
+                {/* Cột phải: Form Đăng nhập */}
                 <section className="login-card-wrap">
                     <form className="login-card" onSubmit={handleLogin}>
                         <div className="mobile-brand">
@@ -107,6 +150,7 @@ function Login() {
                             Enter your details to access the campus dashboard.
                         </p>
 
+                        {/* Thông báo lỗi */}
                         {error && (
                             <div className="login-error" role="alert">
                                 <span>!</span>
@@ -114,10 +158,10 @@ function Login() {
                             </div>
                         )}
 
+                        {/* Ô nhập Username */}
                         <label className="field-label" htmlFor="username">
                             Username
                         </label>
-
                         <div className="login-input-wrap">
                             <input
                                 id="username"
@@ -126,13 +170,14 @@ function Login() {
                                 placeholder="Enter your username"
                                 value={username}
                                 onChange={(e) => setUsername(e.target.value)}
+                                disabled={loading}
                             />
                         </div>
 
+                        {/* Ô nhập Password */}
                         <label className="field-label" htmlFor="password">
                             Password
                         </label>
-
                         <div className="login-input-wrap">
                             <input
                                 id="password"
@@ -141,17 +186,20 @@ function Login() {
                                 placeholder="Enter your password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
+                                disabled={loading}
                             />
 
                             <button
                                 className="show-password"
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
+                                disabled={loading}
                             >
                                 {showPassword ? "Hide" : "Show"}
                             </button>
                         </div>
 
+                        {/* Nút Submit Đăng nhập */}
                         <button
                             className="login-submit"
                             type="submit"
@@ -165,6 +213,7 @@ function Login() {
                             Your session is protected
                         </div>
 
+                        {/* Hướng dẫn tài khoản demo */}
                         <div className="demo-credentials">
                             <strong>Demo account</strong>
                             <span>
@@ -182,6 +231,7 @@ function Login() {
                 </section>
             </div>
 
+            {/* Stylings */}
             <style>{`
                 * {
                     box-sizing: border-box;
@@ -457,9 +507,10 @@ function Login() {
                     justify-content: center;
                     gap: 12px;
                     box-shadow: 0 8px 17px rgba(48, 103, 229, 0.22);
+                    transition: all 0.2s ease;
                 }
 
-                .login-submit:hover {
+                .login-submit:hover:not(:disabled) {
                     filter: brightness(1.05);
                 }
 
