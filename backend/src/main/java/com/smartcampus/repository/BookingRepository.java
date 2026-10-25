@@ -9,6 +9,10 @@ import org.springframework.data.repository.query.Param;
 
 public interface BookingRepository extends JpaRepository<Booking, Long> {
 
+    /**
+     * Overlap rule: existing.startTime < requested.endTime AND existing.endTime > requested.startTime.
+     * Excludes cancelled / rejected bookings from conflict check.
+     */
     @Query("""
             select b from Booking b
             where b.roomId = :roomId
@@ -21,4 +25,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("roomId") Long roomId,
             @Param("startTime") OffsetDateTime startTime,
             @Param("endTime") OffsetDateTime endTime);
+
+    /**
+     * List all bookings, ordered by creation time descending.
+     */
+    List<Booking> findAllByOrderByCreatedAtDesc();
+
+    /**
+     * List bookings filtered by status.
+     */
+    List<Booking> findByStatusOrderByCreatedAtDesc(String status);
 }

@@ -1,42 +1,46 @@
 # Test Plan – Smart Campus Facility & Study Room Reservation
 
-Người phụ trách: M4 – Nguyễn Văn Tâm (Testing)
-Cập nhật: 16/10/2026 (Tuần 2)
+**Người phụ trách:** M4 – Nguyễn Văn Tâm (Testing)
+**Cập nhật:** 21/10/2026
 
-## 1. Phạm vi
-| Tuần | Phạm vi kiểm thử |
-|------|------------------|
-| 1 | Dựng nền: Playwright config, cấu trúc thư mục test, CI chạy compile/test cơ bản |
-| 2 | Login (UI + API), Room API (list/detail), Schedule, Availability |
-| 3+ | Reservation (xung đột đặt phòng 201/409), Seat, QR check-in, Notification, Incident |
+## Mục tiêu
 
-## 2. Loại kiểm thử
-- **Unit test**: Backend dùng JUnit (`mvn test`). Frontend chưa có framework (xem mục 6).
-- **API test** (`tests/api`): Playwright `request`, gọi backend thật tại `API_URL`.
-- **E2E test** (`tests/e2e`): Playwright + Chromium, chạy trên frontend (`BASE_URL`).
+Theo dõi phạm vi kiểm thử của M4 theo phân công từng tuần, chỉ ra phần đã có trong repo và phần còn phụ thuộc các thành viên khác. Test cho API chưa triển khai được giữ ở trạng thái `@pending` để CI hiện tại không lỗi vì thiếu endpoint.
 
-## 3. Môi trường
-| Thành phần | Địa chỉ mặc định |
-|-----------|------------------|
-| Frontend (Vite) | http://localhost:5173 |
-| Backend (Spring Boot) | http://localhost:8080 |
-| Test chạy bằng | Node 20+, Playwright ^1.63 |
+## Kế hoạch theo tuần
 
-## 4. Quy ước
-- File `*.spec.ts`; tên test mô tả hành vi.
-- Không hard-code id phòng: lấy từ `GET /rooms` qua helper `firstRoomId`.
-- Test cho endpoint **chưa được implement** đặt trong `pending(...)` (skip mặc định, bật bằng `RUN_PENDING=true`).
+| Tuần | Nhiệm vụ M4 | Phạm vi kiểm thử | Trạng thái hiện tại / tiêu chí hoàn thành |
+|------|-------------|-----------------|-------------------------------------------|
+| 1 | Setup unit test + Playwright; cấu trúc test; cấu hình CI compile/test cơ bản | Backend JUnit, Playwright API/E2E config, thư mục/fixtures/helpers, CI | **Đạt phần nền tảng trong repo.** Playwright tách API/E2E; CI có frontend lint/build, backend compile/test, API/E2E. Lint/unit test frontend chỉ chạy khi framework/scripts được M1 bổ sung. |
+| 2 | Test Login, Room API, Schedule, Availability; cập nhật CI | Login UI/API; Room list/detail; Schedule UI/API; Availability API | **Đạt một phần.** Login UI, Room API list/detail, Schedule UI và CI test đã có. Còn thiếu Login API, Schedule API và Availability API test. |
+| 3 | Test booking success, overlap, boundary time, invalid time, cancel | Reservation API: tạo thành công, xung đột giờ, biên liền kề, dữ liệu không hợp lệ, hủy | Bộ test được tạo trong `tests/api/reservations/reservations.spec.ts` và đang `@pending`. Hoàn thành khi API trả 201 cho đặt thành công, 409 cho overlap, 400 cho dữ liệu/giờ sai, hỗ trợ hủy và cập nhật trạng thái. |
+| 4 | Test hai người đồng thời đặt cùng phòng và cùng ghế; chỉ một request thành công | Kiểm thử concurrency trên API Reservation/Seat | Bộ test được tạo trong `tests/api/seats/seat-concurrency.spec.ts` và đang `@pending`. Hoàn thành khi trong hai request cạnh tranh cùng tài nguyên/khung giờ chỉ một request thành công, request còn lại bị từ chối. |
 
-## 5. Tiêu chí hoàn thành tuần 2
-- Có test script cho Auth, Room, Schedule, Availability.
-- CI chạy: frontend (build), backend (compile + test), api-tests, e2e-tests.
-- Các test @pending chuyển sang chạy thật khi M2 hoàn thành endpoint.
+## Loại kiểm thử và môi trường
 
-## 6. Rủi ro / việc phụ thuộc
-| # | Vấn đề | Phụ thuộc |
-|---|--------|-----------|
-| 1 | Backend chưa có `POST /auth/login`; frontend đang kiểm tra cứng admin/admin123 | M2, M3 |
-| 2 | Chưa có `GET /rooms/{id}/schedule` và `/availability`; `openapi.yaml` đang rỗng | M2 |
-| 3 | `database/seeds/V1__dev_seed.sql` rỗng → chưa có user/room mẫu cho test | M3 |
-| 4 | Frontend chưa có script `lint` và framework unit test (Vitest) | M1 |
-| 5 | RoomService đang trả dữ liệu cứng, chưa đọc DB | M2 |
+| Loại | Công cụ / phạm vi | Môi trường mặc định |
+|------|------------------|--------------------|
+| Unit | Backend JUnit (`mvn test`); frontend hiện chưa có framework unit test | Backend build environment |
+| API | Playwright `request` gọi backend | `API_URL=http://localhost:8080` |
+| E2E | Playwright + Chromium trên frontend | `BASE_URL=http://localhost:5173` |
+
+Yêu cầu test: Node.js 20+ và Playwright `^1.63`. CI chạy các job frontend, backend, API tests và E2E tests theo workflow hiện tại.
+
+## Quy ước thực hiện
+
+- File test dùng hậu tố `*.spec.ts`; tên test mô tả hành vi và kết quả mong đợi.
+- Lấy room ID từ API/helper thay vì hard-code ID.
+- Dùng ngày tương lai cho booking test để giảm phụ thuộc dữ liệu lịch sử.
+- API chưa sẵn sàng dùng helper `pending(...)`; chạy có chủ đích bằng `RUN_PENDING=true` sau khi API và dữ liệu test đã sẵn sàng.
+- Test tranh chấp phải gửi đồng thời cùng một tài nguyên/khung giờ trên database test dùng chung; không chạy dựa trên stub hoặc dữ liệu được cô lập riêng cho mỗi request.
+
+## Rủi ro và phụ thuộc
+
+| Vấn đề | Phụ thuộc | Hướng xử lý |
+|--------|-----------|-------------|
+| Chưa có Auth API test/contract đăng nhập rõ ràng | M2, M3 | Chốt route, payload, auth response và seed user trước khi viết/bật test API. |
+| Schedule/Availability API test còn thiếu dù endpoint có trong backend | M2 | Viết test theo response thực tế; kiểm tra ngày/giờ sai, phòng không tồn tại, danh sách rỗng và khung giờ khả dụng. |
+| Reservation API, route cancel và shape response chưa có trong repo | M2, M3 | Thống nhất endpoint, status code, ID và trạng thái sau hủy; sau đó bỏ `pending`. |
+| Seat API và dữ liệu ghế/lớp chưa có trong repo | M2, M3 | Chuẩn bị fixture/seed ổn định cho cùng ghế và class session. |
+| Dữ liệu concurrency có thể va chạm giữa CI runs | M2, M3, CI | Dùng ngày/giờ test định trước hoặc cơ chế tạo và dọn dữ liệu test riêng. |
+| Frontend chưa có unit test framework/script | M1 | Quyết định framework và thêm script khi phạm vi yêu cầu frontend unit test. |
