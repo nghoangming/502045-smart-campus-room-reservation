@@ -1,929 +1,822 @@
 
 import { useEffect, useState, type FormEvent } from "react";
-import SeatPicker from "./SeatPicker";
+import {
+  fetchRooms,
+  fetchReservations,
+  createReservation,
+  cancelReservation,
+  fetchSeatAvailability,
+  type RoomDto,
+  type ReservationResponse,
+  type SeatAvailabilityDto,
+} from "../services/api";
+import SeatPicker from "../pages/SeatPicker";
 
-type BookingStatus =
-    | "Chờ xác nhận"
-    | "Đã xác nhận"
-    | "Đã từ chối"
-    | "Đã hủy";
+const primary = "#2563eb";
+const border = "#e2e8f0";
+const muted = "#64748b";
 
-type StudyBooking = {
-    id: number;
-    room: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    people: number;
-    seats?: number[];
-    purpose: string;
-    status: BookingStatus;
-};
-
-type MessageType = "success" | "error" | "";
-
-const STORAGE_KEY = "smart-campus-study-room-bookings";
-
-const rooms = [
-    {
-        code: "C301",
-        name: "Phòng tự học C301",
-        capacity: 8,
-        location: "Tòa C - Tầng 3",
-    },
-    {
-        code: "C302",
-        name: "Phòng tự học C302",
-        capacity: 10,
-        location: "Tòa C - Tầng 3",
-    },
-    {
-        code: "C303",
-        name: "Phòng tự học nhóm C303",
-        capacity: 12,
-        location: "Tòa C - Tầng 3",
-    },
-];
+const timeOptions = Array.from({ length: 21 }, (_, i) => {
+  const minutes = 8 * 60 + i * 30;
+  const hour = Math.floor(minutes / 60);
+  const minute = minutes % 60;
+  return `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
+});
 
 const today = () => {
-    const date = new Date();
-    const offset = date.getTimezoneOffset();
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
-    return new Date(
-        date.getTime() - offset * 60000
-    ).toISOString().slice(0, 10);
+const statusInfo = (status: string) => {
+  switch (status.toUpperCase()) {
+    case "PENDING":
+      return { label: "Chờ xác nhận", bg: "#fef3c7", color: "#92400e" };
+    case "CONFIRMED":
+      return { label: "Đã xác nhận", bg: "#dcfce7", color: "#166534" };
+    case "CANCELLED":
+      return { label: "Đã hủy", bg: "#fee2e2", color: "#b91c1c" };
+    case "REJECTED":
+      return { label: "Đã từ chối", bg: "#fce7f3", color: "#9d174d" };
+    default:
+      return { label: status, bg: "#e2e8f0", color: "#334155" };
+  }
+};
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("vi-VN");
+};
+
+const formatDateTime = (value: string) => {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleString("vi-VN", {
+        dateStyle: "short",
+        timeStyle: "short",
+      });
 };
 
 const inputStyle = {
-    width: "100%",
-    boxSizing: "border-box" as const,
-    padding: "11px 12px",
-    border: "1px solid #d1d5db",
-    borderRadius: "8px",
-    fontSize: "14px",
-    backgroundColor: "#ffffff",
+  width: "100%",
+  boxSizing: "border-box" as const,
+  padding: "11px 12px",
+  border: `1px solid ${border}`,
+  borderRadius: 8,
+  background: "#ffffff",
+  fontSize: 14,
+  color: "#0f172a",
 };
 
 const labelStyle = {
-    display: "block",
-    marginBottom: "7px",
-    fontWeight: 600,
-    fontSize: "13px",
-    color: "#374151",
+  display: "block",
+  fontSize: 13,
+  fontWeight: 650,
+  marginBottom: 7,
 };
 
-const TIME_OPTIONS = Array.from({ length: 21 }, (_, index) => {
-    const totalMinutes = 8 * 60 + index * 30;
-    const hours = Math.floor(totalMinutes / 60)
-        .toString()
-        .padStart(2, "0");
-    const minutes = (totalMinutes % 60)
-        .toString()
-        .padStart(2, "0");
+export default function StudyRoomBooking() {
+  const [rooms, setRooms] = useState<RoomDto[]>([]);
+  const [reservations, setReservations] = useState<ReservationResponse[]>([]);
 
-    return `${hours}:${minutes}`;
-});
+  const [roomId, setRoomId] = useState("");
+  const [date, setDate] = useState(today());
+  const [startTime, setStartTime] = useState("08:00");
+  const [endTime, setEndTime] = useState("09:00");
+  const [note, setNote] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
-function isTimeConflict(
-    startTime: string,
-    endTime: string,
-    bookingStart: string,
-    bookingEnd: string
-) {
-    return startTime < bookingEnd && endTime > bookingStart;
-}
+  const [selectedSeats, setSelectedSeats] = useState<number[]>([]);
+  const [seatAvailability, setSeatAvailability] = useState<SeatAvailabilityDto[]>([]);
+  const [seatLoading, setSeatLoading] = useState(false);
+  const [seatError, setSeatError] = useState("");
 
-function StudyRoomBooking() {
-    const [bookings, setBookings] = useState<StudyBooking[]>(() => {
-        try {
-            const saved = localStorage.getItem(STORAGE_KEY);
-            const parsed = saved ? JSON.parse(saved) : [];
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-            return Array.isArray(parsed) ? parsed : [];
-        } catch {
-            return [];
+  async function loadData() {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [roomData, reservationData] = await Promise.all([
+        fetchRooms(),
+        fetchReservations(
+          statusFilter === "ALL" ? undefined : statusFilter
+        ),
+      ]);
+
+      setRooms(roomData);
+      setReservations(reservationData);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Không thể tải dữ liệu.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    void loadData();
+  }, [statusFilter]);
+
+  useEffect(() => {
+    if (!roomId || !date || !startTime || !endTime || startTime >= endTime) {
+      setSeatAvailability([]);
+      setSelectedSeats([]);
+      setSeatError("");
+      setSeatLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadSeats() {
+      setSeatLoading(true);
+      setSeatError("");
+      setSeatAvailability([]);
+      setSelectedSeats([]);
+
+      try {
+        const result = await fetchSeatAvailability(
+          roomId,
+          date,
+          startTime,
+          endTime
+        );
+
+        if (!cancelled) {
+          setSeatAvailability(result);
         }
-    });
-
-    const [room, setRoom] = useState("C301");
-    const [date, setDate] = useState(today());
-    const [startTime, setStartTime] = useState("08:00");
-    const [endTime, setEndTime] = useState("10:00");
-    const [people, setPeople] = useState(4);
-    const [selectedSeats, setSelectedSeats] = useState<number[]>([
-        1, 2, 3, 4,
-    ]);
-    const [purpose, setPurpose] = useState("Tự học nhóm");
-    const [message, setMessage] = useState("");
-    const [messageType, setMessageType] =
-        useState<MessageType>("");
-    const [statusFilter, setStatusFilter] = useState("Tất cả");
-
-    useEffect(() => {
-        try {
-            localStorage.setItem(
-                STORAGE_KEY,
-                JSON.stringify(bookings)
-            );
-        } catch {
-            // Khong the luu du lieu trong trinh duyet.
+      } catch (err) {
+        if (!cancelled) {
+          setSeatAvailability([]);
+          setSeatError(
+            err instanceof Error
+              ? err.message
+              : "Không thể tải tình trạng ghế."
+          );
         }
-    }, [bookings]);
+      } finally {
+        if (!cancelled) {
+          setSeatLoading(false);
+        }
+      }
+    }
 
-    const selectedRoom = rooms.find(
-        (item) => item.code === room
-    )!;
+    void loadSeats();
 
-    const activeBookings = bookings.filter(
-        (booking) =>
-            booking.room === room &&
-            booking.date === date &&
-            booking.status !== "Đã hủy" &&
-            booking.status !== "Đã từ chối"
-    );
+    return () => {
+      cancelled = true;
+    };
+  }, [roomId, date, startTime, endTime]);
 
-    const unavailableSeats = Array.from(
-        new Set(
-            activeBookings
-                .filter((booking) =>
-                    isTimeConflict(
-                        startTime,
-                        endTime,
-                        booking.startTime,
-                        booking.endTime
-                    )
-                )
-                .flatMap((booking) =>
-                    Array.isArray(booking.seats)
-                        ? booking.seats
-                        : Array.from(
-                              { length: selectedRoom.capacity },
-                              (_, index) => index + 1
-                          )
-                )
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
+
+    if (!roomId) {
+      setError("Vui lòng chọn phòng học.");
+      return;
+    }
+
+    if (date < today()) {
+      setError("Không thể đặt phòng trong ngày đã qua.");
+      return;
+    }
+
+    if (startTime >= endTime) {
+      setError("Giờ kết thúc phải sau giờ bắt đầu.");
+      return;
+    }
+
+    if (seatLoading) {
+      setError("Vui lòng chờ tải xong tình trạng ghế.");
+      return;
+    }
+
+    if (seatError) {
+      setError("Không thể xác nhận tình trạng ghế. Vui lòng thử lại.");
+      return;
+    }
+
+    if (selectedSeats.some(
+      (seatNumber) =>
+        !seatAvailability.some(
+          (seat) => seat.seatNumber === seatNumber && seat.available
         )
-    );
+    )) {
+      setError("Có ghế đã chọn không còn khả dụng. Vui lòng chọn lại.");
+      return;
+    }
 
-    useEffect(() => {
-        setSelectedSeats((previous) =>
-            previous.filter(
-                (seat) => !unavailableSeats.includes(seat)
-            )
-        );
-        setMessage("");
-        setMessageType("");
-    }, [room, date, startTime, endTime]);
+    setSubmitting(true);
 
-    const showError = (text: string) => {
-        setMessage(text);
-        setMessageType("error");
-    };
+    try {
+      const result = await createReservation({
+        roomId: Number(roomId),
+        startTime: `${date}T${startTime}:00+07:00`,
+        endTime: `${date}T${endTime}:00+07:00`,
+        note: note.trim() || undefined,
+      });
 
-    const handleSubmit = (
-        event: FormEvent<HTMLFormElement>
-    ) => {
-        event.preventDefault();
-        setMessage("");
-        setMessageType("");
+      setSuccess(
+        `Đặt phòng thành công! Mã reservation: #${result.id}.` +
+        (selectedSeats.length > 0
+          ? ` Bạn đã chọn ghế: ${selectedSeats.join(", ")}. Lưu ý: danh sách ghế chưa được gửi đến Backend.`
+          : "")
+      );
 
-        if (!date || date < today()) {
-            showError(
-                "Vui lòng chọn ngày hôm nay hoặc ngày trong tương lai."
-            );
-            return;
-        }
+      setNote("");
 
-        if (startTime >= endTime) {
-            showError("Giờ kết thúc phải sau giờ bắt đầu.");
-            return;
-        }
+      const updated = await fetchReservations(
+        statusFilter === "ALL" ? undefined : statusFilter
+      );
+      setReservations(updated);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Đặt phòng thất bại. Vui lòng thử lại."
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
-        if (people < 1 || people > selectedRoom.capacity) {
-            showError(
-                `Số người phải từ 1 đến ${selectedRoom.capacity} người.`
-            );
-            return;
-        }
+  async function handleCancel(id: number) {
+    if (!window.confirm(`Bạn có muốn hủy reservation #${id}?`)) return;
 
-        if (!purpose.trim()) {
-            showError("Vui lòng nhập mục đích sử dụng phòng.");
-            return;
-        }
+    setError("");
+    setSuccess("");
+    setCancellingId(id);
 
-        if (selectedSeats.length !== people) {
-            showError(
-                "Số ghế đã chọn phải bằng số người đăng ký."
-            );
-            return;
-        }
+    try {
+      await cancelReservation(id);
+      setSuccess(`Đã hủy reservation #${id}.`);
 
-        if (
-            selectedSeats.some((seat) =>
-                unavailableSeats.includes(seat)
-            )
-        ) {
-            showError(
-                "Có ghế đã được đặt. Vui lòng chọn ghế khác."
-            );
-            return;
-        }
+      const updated = await fetchReservations(
+        statusFilter === "ALL" ? undefined : statusFilter
+      );
+      setReservations(updated);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Không thể hủy reservation."
+      );
+    } finally {
+      setCancellingId(null);
+    }
+  }
 
-        const conflict = bookings.some((booking) => {
-            if (
-                booking.room !== room ||
-                booking.date !== date ||
-                booking.status === "Đã hủy" ||
-                booking.status === "Đã từ chối" ||
-                !isTimeConflict(
-                    startTime,
-                    endTime,
-                    booking.startTime,
-                    booking.endTime
-                )
-            ) {
-                return false;
-            }
+  const totalSeats = Math.max(
+    0,
+    ...seatAvailability.map((seat) => seat.seatNumber)
+  );
 
-            const occupiedSeats = Array.isArray(booking.seats)
-                ? booking.seats
-                : Array.from(
-                      { length: selectedRoom.capacity },
-                      (_, index) => index + 1
-                  );
-
-            return selectedSeats.some((seat) =>
-                occupiedSeats.includes(seat)
-            );
-        });
-
-        if (conflict) {
-            showError(
-                "Ghế đã được đặt trong khung giờ này. Vui lòng chọn ghế khác."
-            );
-            return;
-        }
-
-        const newBooking: StudyBooking = {
-            id: Date.now(),
-            room,
-            date,
-            startTime,
-            endTime,
-            people,
-            seats: [...selectedSeats].sort((a, b) => a - b),
-            purpose: purpose.trim(),
-            status: "Chờ xác nhận",
-        };
-
-        setBookings((previous) => [
-            newBooking,
-            ...previous,
-        ]);
-
-        setMessage(
-            "Đã gửi yêu cầu đặt phòng tự học thành công."
-        );
-        setMessageType("success");
-    };
-
-    const cancelBooking = (id: number) => {
-        setBookings((previous) =>
-            previous.map((booking) =>
-                booking.id === id &&
-                booking.status === "Chờ xác nhận"
-                    ? { ...booking, status: "Đã hủy" }
-                    : booking
-            )
-        );
-
-        setMessage("Đã hủy yêu cầu đặt phòng.");
-        setMessageType("success");
-    };
-
-    const visibleBookings = bookings.filter(
-        (booking) =>
-            statusFilter === "Tất cả" ||
-            booking.status === statusFilter
-    );
-
-    const statusColor = (status: BookingStatus) => {
-        if (status === "Đã xác nhận") {
-            return {
-                background: "#dcfce7",
-                color: "#166534",
-            };
-        }
-
-        if (status === "Đã từ chối") {
-            return {
-                background: "#fee2e2",
-                color: "#991b1b",
-            };
-        }
-
-        if (status === "Đã hủy") {
-            return {
-                background: "#e5e7eb",
-                color: "#374151",
-            };
-        }
-
-        return {
-            background: "#fef3c7",
-            color: "#92400e",
-        };
-    };
-
-    return (
-        <div
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        padding: "28px 18px",
+        background: "#f8fafc",
+        color: "#0f172a",
+        fontFamily: "Inter, system-ui, sans-serif",
+      }}
+    >
+      <div style={{ maxWidth: 1150, margin: "0 auto" }}>
+        <div style={{ marginBottom: 24 }}>
+          <div
             style={{
-                padding: "30px",
-                background: "#f5f7fb",
-                minHeight: "100vh",
-                fontFamily: "Arial, sans-serif",
-                color: "#111827",
+              color: primary,
+              fontSize: 12,
+              fontWeight: 800,
+              letterSpacing: 1.5,
+              marginBottom: 8,
             }}
+          >
+            SMART CAMPUS FACILITY
+          </div>
+
+          <h1 style={{ fontSize: 28, margin: "0 0 8px" }}>
+            Study Room Booking
+          </h1>
+
+          <p style={{ color: muted, margin: 0, fontSize: 14 }}>
+            Chọn phòng, ngày, khung giờ và ghế; theo dõi trạng thái reservation.
+          </p>
+        </div>
+
+        {error && (
+          <div
+            role="alert"
+            style={{
+              padding: 13,
+              marginBottom: 16,
+              borderRadius: 8,
+              background: "#fee2e2",
+              color: "#991b1b",
+              fontSize: 14,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div
+            role="status"
+            style={{
+              padding: 13,
+              marginBottom: 16,
+              borderRadius: 8,
+              background: "#dcfce7",
+              color: "#166534",
+              fontSize: 14,
+            }}
+          >
+            {success}
+          </div>
+        )}
+
+        <div
+          className="booking-layout"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(280px, 0.85fr) minmax(0, 1.4fr)",
+            gap: 20,
+            alignItems: "start",
+          }}
         >
-            <div style={{ marginBottom: "24px" }}>
-                <p
-                    style={{
-                        color: "#0d9488",
-                        fontWeight: 700,
-                        margin: "0 0 8px",
-                    }}
+          <section
+            style={{
+              background: "#ffffff",
+              border: `1px solid ${border}`,
+              borderRadius: 14,
+              padding: 22,
+              minWidth: 0,
+            }}
+          >
+            <h2 style={{ fontSize: 19, margin: "0 0 5px" }}>
+              Create Reservation
+            </h2>
+
+            <p style={{ color: muted, fontSize: 13, marginBottom: 22 }}>
+              Nhập thông tin đặt phòng bên dưới.
+            </p>
+
+            <form onSubmit={handleSubmit}>
+              <div style={{ marginBottom: 17 }}>
+                <label htmlFor="roomId" style={labelStyle}>
+                  Room *
+                </label>
+
+                <select
+                  id="roomId"
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  style={inputStyle}
+                  required
+                  disabled={loading || submitting}
                 >
-                    SMART CAMPUS / STUDY ROOM
-                </p>
+                  <option value="">-- Select room --</option>
+                  {rooms.map((room) => (
+                    <option key={room.id} value={room.id}>
+                      {room.code} - {room.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                <h1 style={{ margin: "0 0 8px", fontSize: "28px" }}>
-                    Đặt phòng tự học
-                </h1>
+              <div style={{ marginBottom: 17 }}>
+                <label htmlFor="date" style={labelStyle}>
+                  Date *
+                </label>
 
-                <p style={{ color: "#6b7280", margin: 0 }}>
-                    Tìm và đăng ký phòng tự học cá nhân hoặc học nhóm
-                    trong khuôn viên trường.
-                </p>
-            </div>
+                <input
+                  id="date"
+                  type="date"
+                  min={today()}
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  style={inputStyle}
+                  required
+                  disabled={submitting}
+                />
+              </div>
 
-            <div
+              <div
                 style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                        "repeat(auto-fit, minmax(220px, 1fr))",
-                    gap: "16px",
-                    marginBottom: "22px",
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: 12,
+                  marginBottom: 17,
                 }}
-            >
-                {[
-                    {
-                        label: "Tổng yêu cầu",
-                        value: bookings.length,
-                    },
-                    {
-                        label: "Chờ xác nhận",
-                        value: bookings.filter(
-                            (b) => b.status === "Chờ xác nhận"
-                        ).length,
-                    },
-                    {
-                        label: "Đã xác nhận",
-                        value: bookings.filter(
-                            (b) => b.status === "Đã xác nhận"
-                        ).length,
-                    },
-                ].map((item) => (
-                    <div
-                        key={item.label}
-                        style={{
-                            background: "#ffffff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "12px",
-                            padding: "20px",
-                        }}
-                    >
-                        <div
-                            style={{
-                                color: "#6b7280",
-                                fontSize: "13px",
-                            }}
-                        >
-                            {item.label}
-                        </div>
+              >
+                <div>
+                  <label htmlFor="startTime" style={labelStyle}>
+                    Start time *
+                  </label>
 
-                        <div
-                            style={{
-                                fontSize: "28px",
-                                fontWeight: 700,
-                                marginTop: "8px",
-                            }}
-                        >
-                            {item.value}
-                        </div>
-                    </div>
-                ))}
-            </div>
+                  <select
+                    id="startTime"
+                    value={startTime}
+                    onChange={(e) => setStartTime(e.target.value)}
+                    style={inputStyle}
+                    required
+                    disabled={submitting}
+                  >
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-            <div
+                <div>
+                  <label htmlFor="endTime" style={labelStyle}>
+                    End time *
+                  </label>
+
+                  <select
+                    id="endTime"
+                    value={endTime}
+                    onChange={(e) => setEndTime(e.target.value)}
+                    style={inputStyle}
+                    required
+                    disabled={submitting}
+                  >
+                    {timeOptions.map((time) => (
+                      <option key={time} value={time}>
+                        {time}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div
                 style={{
-                    display: "grid",
-                    gridTemplateColumns:
-                        "repeat(auto-fit, minmax(min(100%, 320px), 1fr))",
-                    gap: "20px",
-                    alignItems: "start",
+                  marginBottom: 20,
+                  padding: 14,
+                  border: `1px solid ${border}`,
+                  borderRadius: 10,
                 }}
-            >
-                <form
-                    onSubmit={handleSubmit}
-                    noValidate
-                    style={{
-                        background: "#ffffff",
-                        padding: "24px",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: "19px",
-                            marginTop: 0,
-                        }}
+              >
+                <h3 style={{ fontSize: 16, margin: "0 0 12px" }}>
+                  Chọn ghế
+                </h3>
+
+                {!roomId ? (
+                  <p style={{ color: muted, fontSize: 13, margin: 0 }}>
+                    Vui lòng chọn phòng để xem sơ đồ ghế.
+                  </p>
+                ) : seatError ? (
+                  <div>
+                    <p
+                      role="alert"
+                      style={{
+                        color: "#b91c1c",
+                        fontSize: 13,
+                        marginTop: 0,
+                      }}
                     >
-                        Đăng ký phòng tự học
-                    </h2>
-
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={labelStyle}>Chọn phòng</label>
-
-                        <select
-                            value={room}
-                            onChange={(e) => {
-                                const nextRoom = rooms.find(
-                                    (item) => item.code === e.target.value
-                                )!;
-
-                                setRoom(e.target.value);
-                                setPeople(
-                                    Math.min(people, nextRoom.capacity)
-                                );
-                                setSelectedSeats([]);
-                                setMessage("");
-                                setMessageType("");
-                            }}
-                            style={inputStyle}
-                        >
-                            {rooms.map((item) => (
-                                <option
-                                    key={item.code}
-                                    value={item.code}
-                                >
-                                    {item.code} - {item.name}
-                                </option>
-                            ))}
-                        </select>
-
-                        <p
-                            style={{
-                                color: "#6b7280",
-                                fontSize: "12px",
-                                marginBottom: 0,
-                            }}
-                        >
-                            {selectedRoom.location} · Sức chứa{" "}
-                            {selectedRoom.capacity} người
-                        </p>
-                    </div>
-
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={labelStyle}>Ngày tự học</label>
-
-                        <input
-                            type="date"
-                            min={today()}
-                            value={date}
-                            onChange={(e) => {
-                                setDate(e.target.value);
-                                setSelectedSeats([]);
-                                setMessage("");
-                                setMessageType("");
-                            }}
-                            style={inputStyle}
-                        />
-                    </div>
-
-                    <div
-                        style={{
-                            display: "grid",
-                            gridTemplateColumns: "1fr 1fr",
-                            gap: "12px",
-                            marginBottom: "16px",
-                        }}
-                    >
-                        <div>
-                            <label style={labelStyle}>
-                                Giờ bắt đầu
-                            </label>
-
-                            <select
-                                value={startTime}
-                                onChange={(e) => {
-                                    const nextStart = e.target.value;
-                                    setStartTime(nextStart);
-
-                                    if (nextStart >= endTime) {
-                                        const nextEnd = TIME_OPTIONS.find(
-                                            (time) => time > nextStart
-                                        );
-
-                                        if (nextEnd) {
-                                            setEndTime(nextEnd);
-                                        }
-                                    }
-
-                                    setSelectedSeats([]);
-                                    setMessage("");
-                                    setMessageType("");
-                                }}
-                                style={inputStyle}
-                            >
-                                {TIME_OPTIONS.slice(0, -1).map(
-                                    (time) => (
-                                        <option key={time} value={time}>
-                                            {time}
-                                        </option>
-                                    )
-                                )}
-                            </select>
-                        </div>
-
-                        <div>
-                            <label style={labelStyle}>
-                                Giờ kết thúc
-                            </label>
-
-                            <select
-                                value={endTime}
-                                onChange={(e) => {
-                                    setEndTime(e.target.value);
-                                    setSelectedSeats([]);
-                                    setMessage("");
-                                    setMessageType("");
-                                }}
-                                style={inputStyle}
-                            >
-                                {TIME_OPTIONS.filter(
-                                    (time) => time > startTime
-                                ).map((time) => (
-                                    <option key={time} value={time}>
-                                        {time}
-                                    </option>
-                                ))}
-                            </select>
-                        </div>
-                    </div>
-
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={labelStyle}>
-                            Chọn ghế ({selectedSeats.length} ghế đã chọn)
-                        </label>
-
-                        <SeatPicker
-                            totalSeats={selectedRoom.capacity}
-                            selectedSeats={selectedSeats}
-                            unavailableSeats={unavailableSeats}
-                            accentColor="#0d9488"
-                            onChange={(nextSeats: number[]) => {
-                                setSelectedSeats(nextSeats);
-                                setMessage("");
-                                setMessageType("");
-                            }}
-                        />
-                    </div>
-
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={labelStyle}>Số người</label>
-
-                        <input
-                            type="number"
-                            value={people === 0 ? "" : people}
-                            onChange={(e) => {
-                                const value = e.target.value;
-
-                                setPeople(
-                                    value === "" ? 0 : Number(value)
-                                );
-
-                                setMessage("");
-                                setMessageType("");
-                            }}
-                            style={inputStyle}
-                        />
-
-                        <p
-                            style={{
-                                fontSize: "12px",
-                                color: "#6b7280",
-                                marginBottom: 0,
-                            }}
-                        >
-                            Số người phải bằng số ghế đã chọn và không
-                            vượt quá sức chứa của phòng.
-                        </p>
-                    </div>
-
-                    <div style={{ marginBottom: "18px" }}>
-                        <label style={labelStyle}>
-                            Mục đích sử dụng
-                        </label>
-
-                        <select
-                            value={purpose}
-                            onChange={(e) => {
-                                setPurpose(e.target.value);
-                                setMessage("");
-                                setMessageType("");
-                            }}
-                            style={inputStyle}
-                        >
-                            <option value="Tự học cá nhân">
-                                Tự học cá nhân
-                            </option>
-                            <option value="Tự học nhóm">
-                                Tự học nhóm
-                            </option>
-                            <option value="Làm bài tập nhóm">
-                                Làm bài tập nhóm
-                            </option>
-                            <option value="Chuẩn bị thuyết trình">
-                                Chuẩn bị thuyết trình
-                            </option>
-                            <option value="Ôn thi">Ôn thi</option>
-                        </select>
-                    </div>
-
-                    {message && (
-                        <div
-                            role={
-                                messageType === "error"
-                                    ? "alert"
-                                    : "status"
-                            }
-                            style={{
-                                display: "flex",
-                                alignItems: "flex-start",
-                                gap: "10px",
-                                padding: "13px 15px",
-                                marginBottom: "16px",
-                                borderRadius: "8px",
-                                border: `1px solid ${
-                                    messageType === "success"
-                                        ? "#86efac"
-                                        : "#fca5a5"
-                                }`,
-                                background:
-                                    messageType === "success"
-                                        ? "#f0fdf4"
-                                        : "#fef2f2",
-                                color:
-                                    messageType === "success"
-                                        ? "#166534"
-                                        : "#991b1b",
-                                fontSize: "13px",
-                                lineHeight: 1.5,
-                            }}
-                        >
-                            <span style={{ fontWeight: 700 }}>
-                                {messageType === "success" ? "✓" : "⚠"}
-                            </span>
-                            <span>{message}</span>
-                        </div>
-                    )}
+                      {seatError}
+                    </p>
 
                     <button
-                        type="submit"
-                        style={{
-                            width: "100%",
-                            padding: "12px",
-                            background: "#0d9488",
-                            color: "#ffffff",
-                            border: 0,
-                            borderRadius: "8px",
-                            fontWeight: 700,
-                            cursor: "pointer",
-                        }}
-                    >
-                        Gửi yêu cầu đặt phòng
-                    </button>
-                </form>
-
-                <section
-                    style={{
+                      type="button"
+                      onClick={() => {
+                        setSeatError("");
+                        setSeatAvailability([]);
+                        setRoomId((current) => current);
+                      }}
+                      style={{
+                        padding: "8px 12px",
+                        border: `1px solid ${border}`,
+                        borderRadius: 8,
                         background: "#ffffff",
-                        padding: "24px",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "12px",
-                        overflowX: "auto",
-                    }}
-                >
-                    <h2
-                        style={{
-                            fontSize: "19px",
-                            marginTop: 0,
-                        }}
+                        cursor: "pointer",
+                      }}
                     >
-                        Lịch sử đặt phòng tự học
-                    </h2>
+                      Thử lại bằng cách đổi khung giờ
+                    </button>
+                  </div>
+                ) : seatLoading ? (
+                  <p style={{ color: muted, fontSize: 13 }}>
+                    Đang tải tình trạng ghế...
+                  </p>
+                ) : seatAvailability.length === 0 ? (
+                  <p style={{ color: muted, fontSize: 13 }}>
+                    API chưa trả về dữ liệu ghế cho phòng và thời gian này.
+                  </p>
+                ) : (
+                  <SeatPicker
+                    totalSeats={totalSeats}
+                    selectedSeats={selectedSeats}
+                    unavailableSeats={seatAvailability
+                      .filter((seat) => !seat.available)
+                      .map((seat) => seat.seatNumber)}
+                    onChange={setSelectedSeats}
+                    loading={seatLoading || submitting}
+                    error={seatError}
+                    accentColor={primary}
+                  />
+                )}
 
-                    <div style={{ marginBottom: "16px" }}>
-                        <label style={labelStyle}>
-                            Lọc trạng thái
-                        </label>
+                {selectedSeats.length > 0 && (
+                  <p style={{ fontSize: 13, marginBottom: 0 }}>
+                    Ghế đã chọn: <strong>{selectedSeats.join(", ")}</strong>
+                  </p>
+                )}
+              </div>
 
-                        <select
-                            value={statusFilter}
-                            onChange={(e) =>
-                                setStatusFilter(e.target.value)
-                            }
-                            style={{
-                                ...inputStyle,
-                                maxWidth: "240px",
-                            }}
-                        >
-                            {[
-                                "Tất cả",
-                                "Chờ xác nhận",
-                                "Đã xác nhận",
-                                "Đã từ chối",
-                                "Đã hủy",
-                            ].map((item) => (
-                                <option key={item} value={item}>
-                                    {item}
-                                </option>
-                            ))}
-                        </select>
-                    </div>
+              <div style={{ marginBottom: 20 }}>
+                <label htmlFor="note" style={labelStyle}>
+                  Note
+                </label>
 
-                    {visibleBookings.length === 0 ? (
-                        <p
-                            style={{
-                                color: "#6b7280",
-                                padding: "24px 0",
-                            }}
-                        >
-                            Bạn chưa có yêu cầu đặt phòng tự học.
-                        </p>
-                    ) : (
-                        <table
-                            style={{
-                                width: "100%",
-                                borderCollapse: "collapse",
-                                fontSize: "13px",
-                                minWidth: "600px",
-                            }}
-                        >
-                            <thead>
-                                <tr
-                                    style={{
-                                        textAlign: "left",
-                                        background: "#f9fafb",
-                                    }}
-                                >
-                                    {[
-                                        "Phòng / Ngày",
-                                        "Thời gian",
-                                        "Số người / Ghế",
-                                        "Mục đích",
-                                        "Trạng thái",
-                                        "Thao tác",
-                                    ].map((item) => (
-                                        <th
-                                            key={item}
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            {item}
-                                        </th>
-                                    ))}
-                                </tr>
-                            </thead>
+                <textarea
+                  id="note"
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  placeholder="Nhập ghi chú đặt phòng..."
+                  rows={3}
+                  maxLength={500}
+                  style={{ ...inputStyle, resize: "vertical" }}
+                  disabled={submitting}
+                />
+              </div>
 
-                            <tbody>
-                                {visibleBookings.map((booking) => (
-                                    <tr key={booking.id}>
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            <strong>{booking.room}</strong>
-                                            <br />
-                                            {booking.date}
-                                        </td>
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  submitting ||
+                  rooms.length === 0 ||
+                  seatLoading ||
+                  Boolean(seatError)
+                }
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  border: 0,
+                  borderRadius: 8,
+                  color: "#ffffff",
+                  background: primary,
+                  fontWeight: 700,
+                  fontSize: 14,
+                  cursor: submitting || loading ? "wait" : "pointer",
+                  opacity:
+                    submitting ||
+                    loading ||
+                    rooms.length === 0 ||
+                    seatLoading ||
+                    Boolean(seatError)
+                      ? 0.6
+                      : 1,
+                }}
+              >
+                {submitting ? "Submitting..." : "Confirm Reservation"}
+              </button>
 
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            {booking.startTime}–
-                                            {booking.endTime}
-                                        </td>
+              {rooms.length === 0 && !loading && (
+                <p style={{ color: muted, fontSize: 12, marginTop: 12 }}>
+                  Không có phòng. Hãy kiểm tra API fetchRooms() và Backend.
+                </p>
+              )}
+            </form>
+          </section>
 
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            {booking.people} người
-                                            <br />
-                                            <span
-                                                style={{
-                                                    color: "#64748b",
-                                                    fontSize: "12px",
-                                                }}
-                                            >
-                                                Ghế:{" "}
-                                                {booking.seats?.join(", ") ||
-                                                    "Chưa lưu"}
-                                            </span>
-                                        </td>
+          <section
+            style={{
+              background: "#ffffff",
+              border: `1px solid ${border}`,
+              borderRadius: 14,
+              padding: 22,
+              minWidth: 0,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                gap: 12,
+                flexWrap: "wrap",
+                marginBottom: 18,
+              }}
+            >
+              <div>
+                <h2 style={{ fontSize: 19, margin: "0 0 5px" }}>
+                  Reservation List
+                </h2>
 
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            {booking.purpose}
-                                        </td>
+                <p style={{ color: muted, fontSize: 13, margin: 0 }}>
+                  Trạng thái được lấy trực tiếp từ Backend.
+                </p>
+              </div>
 
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            <span
-                                                style={{
-                                                    ...statusColor(
-                                                        booking.status
-                                                    ),
-                                                    padding: "5px 8px",
-                                                    borderRadius: "6px",
-                                                    whiteSpace: "nowrap",
-                                                }}
-                                            >
-                                                {booking.status}
-                                            </span>
-                                        </td>
-
-                                        <td
-                                            style={{
-                                                padding: "12px",
-                                                borderBottom:
-                                                    "1px solid #e5e7eb",
-                                            }}
-                                        >
-                                            {booking.status ===
-                                                "Chờ xác nhận" && (
-                                                <button
-                                                    type="button"
-                                                    onClick={() =>
-                                                        cancelBooking(
-                                                            booking.id
-                                                        )
-                                                    }
-                                                    style={{
-                                                        border: 0,
-                                                        color: "#dc2626",
-                                                        background:
-                                                            "transparent",
-                                                        cursor: "pointer",
-                                                    }}
-                                                >
-                                                    Hủy
-                                                </button>
-                                            )}
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    )}
-                </section>
+              <button
+                type="button"
+                onClick={() => void loadData()}
+                disabled={loading}
+                style={{
+                  padding: "9px 12px",
+                  border: `1px solid ${border}`,
+                  borderRadius: 8,
+                  background: "#ffffff",
+                  cursor: "pointer",
+                }}
+              >
+                {loading ? "Loading..." : "Refresh"}
+              </button>
             </div>
-        </div>
-    );
-}
 
-export default StudyRoomBooking;
+            <div style={{ marginBottom: 18 }}>
+              <label htmlFor="statusFilter" style={labelStyle}>
+                Reservation status
+              </label>
+
+              <select
+                id="statusFilter"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                style={inputStyle}
+              >
+                <option value="ALL">All statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="CONFIRMED">Confirmed</option>
+                <option value="CANCELLED">Cancelled</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+
+            {loading ? (
+              <p style={{ color: muted, padding: 20, textAlign: "center" }}>
+                Đang tải reservations...
+              </p>
+            ) : reservations.length === 0 ? (
+              <div
+                style={{
+                  padding: 32,
+                  textAlign: "center",
+                  border: `1px dashed ${border}`,
+                  borderRadius: 10,
+                  color: muted,
+                  fontSize: 14,
+                }}
+              >
+                Không có reservation nào trong danh sách này.
+              </div>
+            ) : (
+              <div style={{ display: "grid", gap: 12 }}>
+                {reservations.map((reservation) => {
+                  const status = statusInfo(reservation.status);
+                  const cancelled =
+                    reservation.status.toUpperCase() === "CANCELLED";
+
+                  return (
+                    <article
+                      key={reservation.id}
+                      style={{
+                        border: `1px solid ${border}`,
+                        borderRadius: 10,
+                        padding: 16,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          gap: 10,
+                          flexWrap: "wrap",
+                          marginBottom: 14,
+                        }}
+                      >
+                        <strong>Reservation #{reservation.id}</strong>
+
+                        <span
+                          style={{
+                            background: status.bg,
+                            color: status.color,
+                            padding: "6px 10px",
+                            borderRadius: 20,
+                            fontSize: 12,
+                            fontWeight: 750,
+                          }}
+                        >
+                          {status.label}
+                        </span>
+                      </div>
+
+                      <div
+                        style={{
+                          display: "grid",
+                          gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+                          gap: 14,
+                          fontSize: 13,
+                        }}
+                      >
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            Room ID
+                          </div>
+                          <strong>{reservation.roomId}</strong>
+                        </div>
+
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            User ID
+                          </div>
+                          <strong>{reservation.userId}</strong>
+                        </div>
+
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            Date
+                          </div>
+                          <strong>{formatDate(reservation.startTime)}</strong>
+                        </div>
+
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            Created at
+                          </div>
+                          <strong>{formatDateTime(reservation.createdAt)}</strong>
+                        </div>
+
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            Start
+                          </div>
+                          <strong>{formatDateTime(reservation.startTime)}</strong>
+                        </div>
+
+                        <div>
+                          <div style={{ color: muted, marginBottom: 5 }}>
+                            End
+                          </div>
+                          <strong>{formatDateTime(reservation.endTime)}</strong>
+                        </div>
+                      </div>
+
+                      {!cancelled && (
+                        <div
+                          style={{
+                            marginTop: 14,
+                            paddingTop: 12,
+                            borderTop: `1px solid ${border}`,
+                            display: "flex",
+                            justifyContent: "flex-end",
+                          }}
+                        >
+                          <button
+                            type="button"
+                            onClick={() => void handleCancel(reservation.id)}
+                            disabled={cancellingId === reservation.id}
+                            style={{
+                              padding: "8px 12px",
+                              borderRadius: 8,
+                              border: "1px solid #fecaca",
+                              background: "#fff1f2",
+                              color: "#be123c",
+                              fontWeight: 650,
+                              cursor: "pointer",
+                            }}
+                          >
+                            {cancellingId === reservation.id
+                              ? "Cancelling..."
+                              : "Cancel reservation"}
+                          </button>
+                        </div>
+                      )}
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+
+      <style>{`
+        @media (max-width: 760px) {
+          .booking-layout {
+            grid-template-columns: minmax(0, 1fr) !important;
+          }
+        }
+      `}</style>
+    </div>
+  );
+}

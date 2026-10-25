@@ -1,5 +1,5 @@
 
-import type { CSSProperties } from "react";
+import React from "react";
 
 export type SeatPickerProps = {
     totalSeats: number;
@@ -7,77 +7,103 @@ export type SeatPickerProps = {
     unavailableSeats?: number[];
     onChange: (seats: number[]) => void;
     accentColor?: string;
+    loading?: boolean;
+    error?: string;
+    maxSelectable?: number;
 };
 
-function SeatPicker({
+export default function SeatPicker({
     totalSeats,
     selectedSeats,
     unavailableSeats = [],
     onChange,
-    accentColor = "#2563eb",
+    accentColor = "#0d9488",
+    loading = false,
+    error = "",
+    maxSelectable,
 }: SeatPickerProps) {
-    const seats = Array.from(
-        { length: totalSeats },
-        (_, index) => index + 1
-    );
-
     const unavailable = new Set(unavailableSeats);
-    const selected = new Set(selectedSeats);
 
-    const toggleSeat = (seat: number) => {
-        if (unavailable.has(seat)) {
+    function toggleSeat(seatNumber: number) {
+        if (loading || unavailable.has(seatNumber)) {
             return;
         }
 
-        if (selected.has(seat)) {
-            onChange(selectedSeats.filter((item) => item !== seat));
-        } else {
+        if (selectedSeats.includes(seatNumber)) {
             onChange(
-                [...selectedSeats, seat].sort((a, b) => a - b)
+                selectedSeats.filter(
+                    (seat) => seat !== seatNumber
+                )
             );
+            return;
         }
-    };
 
-    const seatButtonStyle = (seat: number): CSSProperties => {
-        const isUnavailable = unavailable.has(seat);
-        const isSelected = selected.has(seat);
+        if (
+            maxSelectable !== undefined &&
+            selectedSeats.length >= maxSelectable
+        ) {
+            return;
+        }
+
+        onChange(
+            [...selectedSeats, seatNumber].sort(
+                (a, b) => a - b
+            )
+        );
+    }
+
+    function getSeatStyle(seatNumber: number): React.CSSProperties {
+        const isUnavailable = unavailable.has(seatNumber);
+        const isSelected = selectedSeats.includes(seatNumber);
+        const reachedLimit =
+            maxSelectable !== undefined &&
+            selectedSeats.length >= maxSelectable;
+
+        const disabled =
+            isUnavailable ||
+            loading ||
+            (!isSelected && reachedLimit);
 
         return {
-            minWidth: "38px",
-            height: "36px",
-            borderRadius: "8px",
-            border: `1px solid ${
-                isUnavailable
-                    ? "#d1d5db"
-                    : isSelected
-                    ? accentColor
-                    : "#cbd5e1"
-            }`,
+            width: "48px",
+            height: "44px",
+            borderRadius: "10px",
+            border: isSelected
+                ? `2px solid ${accentColor}`
+                : "1px solid #d1d5db",
             background: isUnavailable
                 ? "#e5e7eb"
                 : isSelected
                 ? accentColor
-                : "#ffffff",
+                : "#dcfce7",
             color: isUnavailable
-                ? "#9ca3af"
+                ? "#6b7280"
                 : isSelected
                 ? "#ffffff"
-                : "#374151",
-            fontSize: "12px",
+                : "#166534",
+            fontSize: "14px",
             fontWeight: 700,
-            cursor: isUnavailable ? "not-allowed" : "pointer",
-            opacity: isUnavailable ? 0.7 : 1,
+            cursor: disabled ? "not-allowed" : "pointer",
+            opacity: loading ? 0.6 : 1,
+            transition: "all 0.15s ease",
         };
-    };
+    }
+
+    const availableCount = Math.max(0, totalSeats) -
+        new Set(
+            unavailableSeats.filter(
+                (seat) => seat >= 1 && seat <= totalSeats
+            )
+        ).size;
 
     return (
-        <div
+        <section
             style={{
-                marginBottom: "18px",
-                padding: "14px",
+                marginTop: "20px",
+                padding: "18px",
                 border: "1px solid #e5e7eb",
-                borderRadius: "10px",
-                background: "#f8fafc",
+                borderRadius: "14px",
+                background: "#ffffff",
             }}
         >
             <div
@@ -85,70 +111,49 @@ function SeatPicker({
                     display: "flex",
                     justifyContent: "space-between",
                     alignItems: "center",
-                    gap: "8px",
+                    gap: "12px",
                     flexWrap: "wrap",
-                    marginBottom: "12px",
-                }}
-            >
-                <strong style={{ fontSize: "14px", color: "#1f2937" }}>
-                    Chọn chỗ ngồi
-                </strong>
-
-                <span style={{ fontSize: "12px", color: "#64748b" }}>
-                    Đã chọn: {selectedSeats.length}
-                </span>
-            </div>
-
-            <div
-                style={{
-                    padding: "7px",
-                    textAlign: "center",
-                    borderRadius: "6px",
-                    background: "#e2e8f0",
-                    color: "#475569",
-                    fontSize: "11px",
-                    fontWeight: 700,
                     marginBottom: "14px",
-                    letterSpacing: "1px",
                 }}
             >
-                PHÍA BẢNG / MÀN HÌNH
-            </div>
-
-            <div
-                style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(5, minmax(0, 1fr))",
-                    gap: "8px",
-                    justifyItems: "center",
-                }}
-            >
-                {seats.map((seat) => (
-                    <button
-                        key={seat}
-                        type="button"
-                        onClick={() => toggleSeat(seat)}
-                        disabled={unavailable.has(seat)}
-                        aria-pressed={selected.has(seat)}
-                        aria-label={`Ghế ${seat}${
-                            unavailable.has(seat)
-                                ? " đã được đặt"
-                                : selected.has(seat)
-                                ? " đang chọn"
-                                : " còn trống"
-                        }`}
-                        title={
-                            unavailable.has(seat)
-                                ? "Ghế đã được đặt"
-                                : selected.has(seat)
-                                ? "Bỏ chọn ghế này"
-                                : "Chọn ghế này"
-                        }
-                        style={seatButtonStyle(seat)}
+                <div>
+                    <h3
+                        style={{
+                            margin: "0 0 5px",
+                            fontSize: "17px",
+                            color: "#111827",
+                        }}
                     >
-                        {seat}
-                    </button>
-                ))}
+                        Chọn ghế
+                    </h3>
+
+                    <p
+                        style={{
+                            margin: 0,
+                            fontSize: "12px",
+                            color: "#6b7280",
+                        }}
+                    >
+                        Chọn ghế theo số người tham gia
+                    </p>
+                </div>
+
+                <span
+                    style={{
+                        padding: "6px 10px",
+                        borderRadius: "20px",
+                        background: "#f0fdfa",
+                        color: "#0f766e",
+                        fontSize: "12px",
+                        fontWeight: 700,
+                    }}
+                >
+                    {selectedSeats.length}
+                    {maxSelectable !== undefined
+                        ? ` / ${maxSelectable}`
+                        : ""}
+                    {" "}ghế
+                </span>
             </div>
 
             <div
@@ -156,80 +161,237 @@ function SeatPicker({
                     display: "flex",
                     flexWrap: "wrap",
                     gap: "12px",
-                    marginTop: "14px",
-                    fontSize: "11px",
-                    color: "#475569",
+                    marginBottom: "20px",
+                    fontSize: "12px",
+                    color: "#4b5563",
                 }}
             >
-                <span
+                <div
                     style={{
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
-                        gap: "5px",
+                        gap: "6px",
                     }}
                 >
                     <span
                         style={{
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "3px",
+                            width: "13px",
+                            height: "13px",
+                            borderRadius: "4px",
+                            background: "#dcfce7",
+                            border: "1px solid #86efac",
+                        }}
+                    />
+                    Ghế trống
+                </div>
+
+                <div
+                    style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "6px",
+                    }}
+                >
+                    <span
+                        style={{
+                            width: "13px",
+                            height: "13px",
+                            borderRadius: "4px",
                             background: accentColor,
                         }}
                     />
                     Đang chọn
-                </span>
+                </div>
 
-                <span
+                <div
                     style={{
-                        display: "inline-flex",
+                        display: "flex",
                         alignItems: "center",
-                        gap: "5px",
+                        gap: "6px",
                     }}
                 >
                     <span
                         style={{
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "3px",
-                            border: "1px solid #cbd5e1",
-                            background: "#ffffff",
-                        }}
-                    />
-                    Còn trống
-                </span>
-
-                <span
-                    style={{
-                        display: "inline-flex",
-                        alignItems: "center",
-                        gap: "5px",
-                    }}
-                >
-                    <span
-                        style={{
-                            width: "12px",
-                            height: "12px",
-                            borderRadius: "3px",
+                            width: "13px",
+                            height: "13px",
+                            borderRadius: "4px",
                             background: "#e5e7eb",
+                            border: "1px solid #d1d5db",
                         }}
                     />
-                    Đã được đặt
-                </span>
+                    Không khả dụng
+                </div>
             </div>
 
-            {selectedSeats.length === 0 && (
+            {loading && (
                 <p
+                    role="status"
                     style={{
-                        margin: "10px 0 0",
-                        color: "#b91c1c",
-                        fontSize: "12px",
+                        padding: "12px",
+                        borderRadius: "8px",
+                        background: "#f3f4f6",
+                        color: "#4b5563",
+                        fontSize: "13px",
                     }}
                 >
-                    Vui lòng chọn ít nhất một chỗ ngồi.
+                    Đang tải trạng thái ghế...
                 </p>
             )}
-        </div>
+
+            {error && (
+                <p
+                    role="alert"
+                    style={{
+                        padding: "12px",
+                        borderRadius: "8px",
+                        background: "#fef2f2",
+                        color: "#b91c1c",
+                        fontSize: "13px",
+                        lineHeight: 1.5,
+                    }}
+                >
+                    {error}
+                </p>
+            )}
+
+            {!loading && !error && (
+                <>
+                    <div
+                        style={{
+                            width: "100%",
+                            maxWidth: "300px",
+                            margin: "0 auto 22px",
+                            padding: "9px",
+                            textAlign: "center",
+                            borderRadius: "8px",
+                            background: "#f3f4f6",
+                            color: "#6b7280",
+                            fontSize: "11px",
+                            fontWeight: 700,
+                            letterSpacing: "2px",
+                        }}
+                    >
+                        PHÍA TRƯỚC PHÒNG
+                    </div>
+
+                    <div
+                        style={{
+                            display: "grid",
+                            gridTemplateColumns:
+                                "repeat(4, minmax(0, 48px))",
+                            gap: "12px",
+                            justifyContent: "center",
+                        }}
+                    >
+                        {Array.from(
+                            {
+                                length: Math.max(
+                                    0,
+                                    Math.floor(totalSeats)
+                                ),
+                            },
+                            (_, index) => index + 1
+                        ).map((seatNumber) => {
+                            const isUnavailable =
+                                unavailable.has(seatNumber);
+
+                            const isSelected =
+                                selectedSeats.includes(seatNumber);
+
+                            const reachedLimit =
+                                maxSelectable !== undefined &&
+                                selectedSeats.length >= maxSelectable;
+
+                            const disabled =
+                                isUnavailable ||
+                                loading ||
+                                (!isSelected && reachedLimit);
+
+                            return (
+                                <button
+                                    key={seatNumber}
+                                    type="button"
+                                    style={getSeatStyle(seatNumber)}
+                                    disabled={disabled}
+                                    aria-pressed={isSelected}
+                                    aria-label={
+                                        `Ghế ${seatNumber}` +
+                                        (isUnavailable
+                                            ? ", không khả dụng"
+                                            : "")
+                                    }
+                                    onClick={() =>
+                                        toggleSeat(seatNumber)
+                                    }
+                                    title={
+                                        isUnavailable
+                                            ? "Ghế không khả dụng"
+                                            : isSelected
+                                            ? "Bỏ chọn ghế"
+                                            : reachedLimit
+                                            ? "Đã chọn đủ số ghế"
+                                            : "Chọn ghế này"
+                                    }
+                                >
+                                    {seatNumber}
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    <div
+                        style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            flexWrap: "wrap",
+                            gap: "8px",
+                            marginTop: "20px",
+                            paddingTop: "14px",
+                            borderTop: "1px solid #e5e7eb",
+                            fontSize: "13px",
+                        }}
+                    >
+                        <span style={{ color: "#6b7280" }}>
+                            Ghế còn trống
+                        </span>
+
+                        <strong style={{ color: "#166534" }}>
+                            {availableCount}
+                        </strong>
+                    </div>
+
+                    <p
+                        style={{
+                            margin: "12px 0 0",
+                            fontSize: "13px",
+                            lineHeight: 1.6,
+                            color: "#374151",
+                            overflowWrap: "anywhere",
+                        }}
+                    >
+                        <strong>Ghế đang chọn: </strong>
+                        {selectedSeats.length > 0
+                            ? [...selectedSeats]
+                                  .sort((a, b) => a - b)
+                                  .join(", ")
+                            : "Chưa chọn ghế"}
+                    </p>
+
+                    {maxSelectable !== undefined &&
+                        selectedSeats.length < maxSelectable && (
+                            <p
+                                style={{
+                                    margin: "8px 0 0",
+                                    fontSize: "12px",
+                                    color: "#b45309",
+                                }}
+                            >
+                                Bạn cần chọn thêm{" "}
+                                {maxSelectable - selectedSeats.length} ghế.
+                            </p>
+                        )}
+                </>
+            )}
+        </section>
     );
 }
-
-export default SeatPicker;

@@ -1,145 +1,283 @@
-// Sử dụng đường dẫn tương đối để đi qua Vite Proxy (/api/v1 -> http://localhost:8080/api/v1)
-// tránh lỗi chặn CORS khi gọi từ trình duyệt (localhost:5173) sang Spring Boot (localhost:8080).
+
 const BASE_URL = "/api/v1";
 
-// ==========================================
-// KIỂU DỮ LIỆU KHỚP VỚI BACKEND DTO (M2)
-// ==========================================
-
-// Khớp với com.smartcampus.dto.RoomResponse
 export interface RoomDto {
-    id: number;
-    code: string;
-    name: string;
-    location: string | null;
-    status: string;
+  id: number;
+  code: string;
+  name: string;
+  location: string | null;
+  status: string;
 }
 
-// Khớp với com.smartcampus.dto.RoomScheduleResponse
 export interface RoomScheduleDto {
-    bookingId: number;
-    startTime: string;
-    endTime: string;
-    status: string;
+  bookingId: number;
+  startTime: string;
+  endTime: string;
+  status: string;
 }
 
-// Helper xử lý phản hồi từ Server một cách an toàn
-async function handleResponse<T>(res: Response, defaultErrorMsg: string): Promise<T> {
-    if (!res.ok) {
-        let errorData = defaultErrorMsg;
-        try {
-            const data = await res.json();
-            if (data && data.message) errorData = data.message;
-        } catch (_) {}
-        throw new Error(errorData);
-    }
-    return res.json() as Promise<T>;
+export interface SeatAvailabilityDto {
+  seatNumber: number;
+  available: boolean;
 }
 
-// ==========================================
-// 1. AUTHENTICATION API
-// ==========================================
+export interface ReservationRequest {
+  roomId: number;
+  classSessionId?: number | null;
+  startTime: string;
+  endTime: string;
+  note?: string;
+}
 
-export async function loginApi(credentials: { username?: string; email?: string; password: string }) {
+export interface ReservationResponse {
+  id: number;
+  userId: number;
+  roomId: number;
+  startTime: string;
+  endTime: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface CreateBookingRequest {
+  roomId: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  numberOfPeople: number;
+  seatNumbers: number[];
+  purpose: string;
+}
+
+const jsonHeaders = {
+  "Content-Type": "application/json",
+};
+
+async function request<T>(
+  path: string,
+  options?: RequestInit
+): Promise<T> {
+  let response: Response;
+
+  try {
+    response = await fetch(`${BASE_URL}${path}`, options);
+  } catch {
+    throw new Error(
+      "Không thể kết nối Backend. Hãy kiểm tra server và Vite Proxy."
+    );
+  }
+
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+
     try {
-        const res = await fetch(`${BASE_URL}/auth/login`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(credentials),
-        });
-        return await handleResponse<any>(res, "Incorrect username or password");
-    } catch (err: any) {
-        throw new Error(err.message || "Cannot connect to authentication server.");
+      const data = await response.json();
+
+      if (data?.message) {
+        message = data.message;
+      }
+    } catch {
+      // Giữ thông báo lỗi mặc định
     }
+
+    throw new Error(message);
+  }
+
+  if (response.status === 204) {
+    return undefined as T;
+  }
+
+  return response.json() as Promise<T>;
 }
 
-// ==========================================
-// 2. ROOMS API (Khớp với RoomController.java)
-// ==========================================
+function extractList<T>(result: unknown): T[] {
+  if (Array.isArray(result)) {
+    return result as T[];
+  }
 
-// GET /api/v1/rooms — Lấy danh sách tất cả các phòng
+  if (result !== null && typeof result === "object") {
+    const data = result as Record<string, unknown>;
+
+    if (Array.isArray(data.data)) {
+      return data.data as T[];
+    }
+
+    if (Array.isArray(data.content)) {
+      return data.content as T[];
+    }
+
+    if (Array.isArray(data.items)) {
+      return data.items as T[];
+    }
+  }
+
+  console.error("Dữ liệu API không đúng cấu trúc:", result);
+  return [];
+}
+
+// Đăng nhập
+export async function loginApi(credentials: {
+  username?: string;
+  email?: string;
+  password: string;
+}): Promise<unknown> {
+  return request("/auth/login", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(credentials),
+  });
+}
+
+// Lấy danh sách phòng
 export async function fetchRooms(): Promise<RoomDto[]> {
-    try {
-        const res = await fetch(`${BASE_URL}/rooms`);
-        return await handleResponse<RoomDto[]>(res, "Failed to fetch rooms from server.");
-    } catch (err: any) {
-        throw new Error(err.message || "Failed to fetch rooms. Please check your Backend connection.");
-    }
+  const result = await request<unknown>("/rooms");
+  return extractList<RoomDto>(result);
 }
 
-// GET /api/v1/rooms/{id} — Lấy chi tiết một phòng theo ID
-export async function fetchRoomById(id: number | string): Promise<RoomDto> {
-    try {
-        const res = await fetch(`${BASE_URL}/rooms/${id}`);
-        return await handleResponse<RoomDto>(res, `Room #${id} not found.`);
-    } catch (err: any) {
-        throw new Error(err.message || "Failed to fetch room details.");
-    }
+// Lấy thông tin một phòng
+export async function fetchRoomById(
+  id: number | string
+): Promise<RoomDto> {
+  return request<RoomDto>(`/rooms/${id}`);
 }
 
-// GET /api/v1/rooms/{id}/schedule?date=YYYY-MM-DD — Lấy lịch đặt của một phòng trong ngày
-export async function fetchRoomSchedule(roomId: number | string, date: string): Promise<RoomScheduleDto[]> {
-    try {
-        const params = new URLSearchParams({ date });
-        const res = await fetch(`${BASE_URL}/rooms/${roomId}/schedule?${params.toString()}`);
-        return await handleResponse<RoomScheduleDto[]>(res, "Failed to fetch room schedule from server.");
-    } catch (err: any) {
-        throw new Error(err.message || "Failed to fetch room schedule. Please check your Backend connection.");
-    }
+// Lấy lịch phòng theo ngày
+export async function fetchRoomSchedule(
+  roomId: number | string,
+  date: string
+): Promise<RoomScheduleDto[]> {
+  const params = new URLSearchParams({ date });
+
+  const result = await request<unknown>(
+    `/rooms/${roomId}/schedule?${params.toString()}`
+  );
+
+  return extractList<RoomScheduleDto>(result);
 }
 
-// GET /api/v1/rooms/availability?date=YYYY-MM-DD&startTime=HH:mm&endTime=HH:mm — Tìm phòng trống theo khung giờ
+// Lấy danh sách phòng còn trống theo thời gian
 export async function fetchAvailableRooms(
-    date: string,
-    startTime: string,
-    endTime: string
+  date: string,
+  startTime: string,
+  endTime: string
 ): Promise<RoomDto[]> {
-    try {
-        const params = new URLSearchParams({ date, startTime, endTime });
-        const res = await fetch(`${BASE_URL}/rooms/availability?${params.toString()}`);
-        return await handleResponse<RoomDto[]>(res, "Failed to check room availability.");
-    } catch (err: any) {
-        throw new Error(err.message || "Failed to check room availability. Please check your Backend connection.");
-    }
+  const params = new URLSearchParams({
+    date,
+    startTime,
+    endTime,
+  });
+
+  const result = await request<unknown>(
+    `/rooms/availability?${params.toString()}`
+  );
+
+  return extractList<RoomDto>(result);
 }
 
-// POST /api/v1/rooms — Tạo phòng mới (dự kiến cho Admin)
-export async function createRoom(data: Partial<RoomDto>) {
-    try {
-        const res = await fetch(`${BASE_URL}/rooms`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-        });
-        return await handleResponse<RoomDto>(res, "Failed to create room.");
-    } catch (err: any) {
-        throw new Error(err.message || "Could not save room. Server connection error.");
-    }
+// Tạo phòng
+export async function createRoom(
+  data: Partial<RoomDto>
+): Promise<RoomDto> {
+  return request<RoomDto>("/rooms", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(data),
+  });
 }
 
-// PUT /api/v1/rooms/{id} — Cập nhật thông tin phòng (dự kiến cho Admin)
-export async function updateRoom(id: number | string, data: Partial<RoomDto>) {
-    try {
-        const res = await fetch(`${BASE_URL}/rooms/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
-        });
-        return await handleResponse<RoomDto>(res, "Failed to update room.");
-    } catch (err: any) {
-        throw new Error(err.message || "Could not update room. Server connection error.");
-    }
+// Cập nhật phòng
+export async function updateRoom(
+  id: number | string,
+  data: Partial<RoomDto>
+): Promise<RoomDto> {
+  return request<RoomDto>(`/rooms/${id}`, {
+    method: "PUT",
+    headers: jsonHeaders,
+    body: JSON.stringify(data),
+  });
 }
 
-// DELETE /api/v1/rooms/{id} — Xóa phòng (dự kiến cho Admin)
-export async function deleteRoom(id: number | string) {
-    try {
-        const res = await fetch(`${BASE_URL}/rooms/${id}`, {
-            method: "DELETE",
-        });
-        if (!res.ok) throw new Error("Failed to delete room.");
-        return true;
-    } catch (err: any) {
-        throw new Error(err.message || "Could not delete room. Server connection error.");
+// Xóa phòng
+export async function deleteRoom(
+  id: number | string
+): Promise<void> {
+  return request<void>(`/rooms/${id}`, {
+    method: "DELETE",
+  });
+}
+
+// Lấy trạng thái ghế
+export async function fetchSeatAvailability(
+  roomId: number | string,
+  date: string,
+  startTime: string,
+  endTime: string
+): Promise<SeatAvailabilityDto[]> {
+  const params = new URLSearchParams({
+    date,
+    startTime,
+    endTime,
+  });
+
+  const result = await request<unknown>(
+    `/rooms/${roomId}/seats/availability?${params.toString()}`
+  );
+
+  return extractList<SeatAvailabilityDto>(result);
+}
+
+// Tạo yêu cầu đặt phòng theo API đặt phòng tự học cũ
+export async function createBooking(
+  data: CreateBookingRequest
+): Promise<unknown> {
+  return request("/bookings", {
+    method: "POST",
+    headers: jsonHeaders,
+    body: JSON.stringify(data),
+  });
+}
+
+// Tạo yêu cầu đặt phòng theo backend Reservation
+export async function createReservation(
+  data: ReservationRequest
+): Promise<ReservationResponse> {
+  return request<ReservationResponse>(
+    "/classroom-reservations",
+    {
+      method: "POST",
+      headers: jsonHeaders,
+      body: JSON.stringify(data),
     }
+  );
+}
+
+// Lấy danh sách yêu cầu đặt phòng
+export async function fetchReservations(
+  status?: string
+): Promise<ReservationResponse[]> {
+  const params = new URLSearchParams();
+
+  if (status && status !== "ALL") {
+    params.set("status", status);
+  }
+
+  const query = params.toString();
+
+  const result = await request<unknown>(
+    `/classroom-reservations${query ? `?${query}` : ""}`
+  );
+
+  return extractList<ReservationResponse>(result);
+}
+
+// Hủy yêu cầu đặt phòng
+export async function cancelReservation(
+  id: number | string
+): Promise<ReservationResponse> {
+  return request<ReservationResponse>(
+    `/classroom-reservations/${id}/cancel`,
+    {
+      method: "PATCH",
+    }
+  );
 }
