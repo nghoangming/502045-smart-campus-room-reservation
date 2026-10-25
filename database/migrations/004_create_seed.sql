@@ -1,4 +1,4 @@
--- Development only: enabled by the Spring dev profile, never by the default profile.
+-- Demo data: run manually after 001, 002 and 003 on the intended database.
 -- BCrypt demo credentials: admin/Admin@123, teacher/Teacher@123, student/Student@123.
 INSERT INTO users (user_code, full_name, email, password_hash) VALUES
     ('admin', 'Campus Administrator', 'admin@smartcampus.test', '$2a$10$48PFqODW9Q4032olxkmfF.b8VMeBb0n4ZiWHGItxChltfttwo613C'),
@@ -27,9 +27,9 @@ ON CONFLICT (room_code) DO NOTHING;
 INSERT INTO bookings (user_id, room_id, start_time, end_time, status)
 SELECT users.user_id, rooms.room_id, demo.start_time, demo.end_time, demo.status
 FROM (VALUES
-    ('teacher', 'A101', TIMESTAMPTZ '2026-10-16 08:00:00+07', TIMESTAMPTZ '2026-10-16 10:00:00+07', 'APPROVED'),
-    ('teacher', 'A102', TIMESTAMPTZ '2026-10-16 09:00:00+07', TIMESTAMPTZ '2026-10-16 11:00:00+07', 'APPROVED'),
-    ('teacher', 'B201', TIMESTAMPTZ '2026-10-16 13:00:00+07', TIMESTAMPTZ '2026-10-16 15:00:00+07', 'APPROVED'),
+    ('teacher', 'A101', TIMESTAMPTZ '2026-10-16 08:00:00+07', TIMESTAMPTZ '2026-10-16 10:00:00+07', 'CONFIRMED'),
+    ('teacher', 'A102', TIMESTAMPTZ '2026-10-16 09:00:00+07', TIMESTAMPTZ '2026-10-16 11:00:00+07', 'CONFIRMED'),
+    ('teacher', 'B201', TIMESTAMPTZ '2026-10-16 13:00:00+07', TIMESTAMPTZ '2026-10-16 15:00:00+07', 'CONFIRMED'),
     ('student', 'C301', TIMESTAMPTZ '2026-10-16 08:00:00+07', TIMESTAMPTZ '2026-10-16 10:00:00+07', 'CANCELLED')
 ) AS demo(user_code, room_code, start_time, end_time, status)
 JOIN users ON users.user_code = demo.user_code

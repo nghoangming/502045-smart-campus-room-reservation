@@ -1,4 +1,78 @@
-# Database CNPM: cách chạy và giải thích index, seed, Hibernate
+# Nhiệm vụ tuần này: Reservation / ClassSession / SeatReservation
+
+Phần cập nhật này chỉ thay đổi file trong `database/`. Backend/frontend giữ nguyên. Những hướng dẫn kết nối ở phần tài liệu cũ bên dưới có thể khác cấu hình của nhánh develop vừa pull; chúng không phải kết quả cấu hình lại backend trong lần làm này.
+
+## Các file cần dùng
+
+| File | Công việc |
+| --- | --- |
+| migrations/005_reservation_constraints.sql | Củng cố bảng `bookings` làm Reservation: status, chống giao giờ, index theo phòng/thời gian/status và truy vấn lịch sử. |
+| migrations/006_class_sessions_seat_reservations.sql | Tạo `class_sessions`, `seat_reservations`; bổ sung unique/CHECK cho `seats`; FK ghép bảo đảm ghế thuộc đúng phòng. |
+| scripts/preflight_week3.sql | SELECT kiểm tra dữ liệu cũ trước khi chạy migration. |
+| tests/verify_reservation_constraints.sql | Kiểm thử ràng buộc trên database thử; các bản ghi test được rollback. |
+
+File 003 giữ phần bạn đã sửa bỏ khối SELECT bị bọc nháy. File 004 đổi status mẫu từ APPROVED thành CONFIRMED để seed tương thích với CHECK mới; không tạo lại bảng hoặc đổi ID.
+
+## Chạy thủ công vào CNPM
+
+1. Trong pgAdmin, mở Query Tool của database **CNPM**.
+2. Chạy `scripts/preflight_week3.sql`. Kiểm tra dòng `current_database()` đúng là CNPM. Các truy vấn phát hiện status lạ, thời gian sai, booking giao nhau, số ghế trùng/không dương cần trả về rỗng.
+3. Database CNPM đã có schema và index cũ: chạy **toàn bộ file 005**, rồi **toàn bộ file 006**. Không chạy lại 001-003 trên các bảng đã có.
+4. Mỗi migration chạy một lần và có `BEGIN`/`COMMIT`. Nếu lỗi, gõ `ROLLBACK;` trước khi sửa dữ liệu hoặc chạy lại. Script không tự xóa booking/ghế bị trùng để vượt qua lỗi.
+
+Trên database mới trống, thứ tự là **001 → 002 → 003 → 004 → 005 → 006**. Chạy bằng tài khoản được phép `CREATE EXTENSION btree_gist`, ví dụ postgres trên máy local.
+
+Truy vấn kiểm tra sau khi chạy:
+
+```sql
+SELECT current_database();
+SELECT status, count(*) FROM bookings GROUP BY status;
+SELECT to_regclass('public.class_sessions'), to_regclass('public.seat_reservations');
+SELECT conname, pg_get_constraintdef(oid)
+FROM pg_constraint
+WHERE conrelid IN ('bookings'::regclass, 'seats'::regclass,
+                  'class_sessions'::regclass, 'seat_reservations'::regclass)
+ORDER BY conrelid::regclass::text, conname;
+```
+
+## Quy tắc dữ liệu đã triển khai
+
+**Reservation** dùng bảng `bookings` hiện có để khớp entity Booking của backend. FK user_id/room_id đã có trong 001; CHECK start_time < end_time có trong 003. Migration 005 thêm default PENDING và chỉ cho phép PENDING, CONFIRMED, CANCELLED, REJECTED. Dữ liệu cũ được chuẩn hóa chữ hoa/bỏ khoảng trắng; APPROVED đổi thành CONFIRMED, CANCELED đổi thành CANCELLED.
+
+Ràng buộc `ex_bookings_room_active_time` chặn hai booking PENDING/CONFIRMED của cùng phòng có thời gian giao nhau, kể cả hai giao dịch ghi đồng thời hoặc UPDATE một booking đã hủy về trạng thái còn hiệu lực. Giờ lưu TIMESTAMPTZ; khoảng `[)` cho phép 08:00-10:00 và 10:00-12:00 nối tiếp nhau. Booking CANCELLED/REJECTED giữ lịch sử và không chiếm phòng.
+
+**ClassSession** có `booking_id` bắt buộc, mỗi booking chỉ gắn một buổi học. FK ghép `(booking_id, room_id, start_time, end_time)` bắt buộc buổi học dùng đúng phòng/giờ đã đặt. Mục đích là giữ một nguồn quản lý lịch phòng trong bookings. Khi tích hợp endpoint ClassSession, backend cần lấy/tạo booking tương ứng trong cùng giao dịch, rồi lưu booking_id vào class_sessions. Thay đổi phòng/giờ booking đã gắn session sẽ bị FK từ chối nếu chưa xử lý quan hệ này.
+
+**Seat** kế thừa bảng seats, thêm `UNIQUE(room_id, seat_number)` và `CHECK(seat_number > 0)`. Hai phòng khác nhau có thể cùng ghế số 1.
+
+**SeatReservation** tham chiếu user, session và seat. Trường room_id phải khớp cả session lẫn seat qua hai FK ghép; không thể chọn ghế ở phòng khác. Hai partial unique index chỉ áp dụng khi status = CONFIRMED:
+
+- `(class_session_id, seat_id)`: một ghế chỉ có một lượt chọn đang hiệu lực trong một buổi.
+- `(class_session_id, user_id)`: một người chỉ chọn một ghế đang hiệu lực trong một buổi.
+
+Hủy lượt chọn bằng status CANCELLED sẽ giữ lịch sử và giải phóng ghế. Cùng ghế/người có thể xuất hiện trong buổi học khác. Bảng booking_seats cũ được giữ nguyên; không tự chuyển dữ liệu sang seat_reservations vì bảng cũ không đủ thông tin buổi học/người chọn/trạng thái.
+
+Các bảng mới mặc định không cascade xóa dữ liệu liên quan. Không thêm trigger để tự thay đổi trạng thái giữa booking, session và lượt chọn ghế.
+
+## Phần cần phối hợp với M2, chưa sửa trong BE/FE
+
+- OpenAPI hiện chưa có bookingId trong ClassSessionRequest; khi làm endpoint buổi học cần thống nhất quan hệ một buổi ↔ một booking nêu trên.
+- `classSessionId`/`note` trong request Reservation hiện chưa được backend lưu; migration này không làm các trường đó tự được lưu.
+- Backend cần kiểm tra booking/session còn hoạt động, trạng thái vận hành của phòng/ghế, quyền của người dùng và cửa sổ thời gian chọn ghế trước khi ghi. FK/UNIQUE không thay thế các quy tắc nghiệp vụ đó.
+- Hủy booking của buổi học cần xử lý các lượt chọn ghế liên quan trong giao dịch nghiệp vụ; database chưa tự hủy chúng.
+- Khi hai request đua nhau, PostgreSQL có thể trả SQLSTATE **23P01** (exclusion) hoặc **23505** (unique). M2 cần chuyển thành HTTP 409; backend hiện tại chỉ bắt lỗi kiểm tra trùng ở service nên chưa bảo đảm trả 409 cho lỗi phát sinh ở constraint. Không sửa backend trong nhiệm vụ database này.
+
+## Kiểm chứng
+
+Đã thử trên PostgreSQL 18 riêng, không chạy migration vào CNPM: tạo mới từ 001-006; nâng cấp từ dữ liệu APPROVED; từ chối status lạ/booking giao nhau/ghế trùng và rollback thay đổi; FK/CHECK/UNIQUE cho INSERT/UPDATE; hủy rồi đặt lại; ba ca ghi đồng thời cho phòng, ghế và người chọn ghế.
+
+File SQL test sử dụng dữ liệu tạm trong một giao dịch và kết thúc ROLLBACK. Chỉ chạy test trên database thử; identity sequence vẫn có thể tăng dù rollback.
+
+Tham khảo: [PostgreSQL range exclusion constraints](https://www.postgresql.org/docs/18/rangetypes.html#RANGETYPES-CONSTRAINT).
+
+---
+
+# Tài liệu kết nối và Hibernate từ lần làm trước
 
 Project: `D:\CNPM_CK\502045-smart-campus-room-reservation`.
 
