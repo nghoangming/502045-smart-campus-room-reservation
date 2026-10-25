@@ -1,13 +1,3 @@
- 'SELECT
-    current_database() AS database_name,
-    current_user AS database_user,
-    version() AS postgresql_version;
-SELECT table_name
-FROM information_schema.tables
-WHERE table_schema = 'public'
-  AND table_type = 'BASE TABLE'
-ORDER BY table_name; '
-
 -- room_code already has an index through its UNIQUE constraint in migration 001.
 CREATE INDEX idx_rooms_status_location ON rooms (status, location);
 
@@ -22,4 +12,3 @@ CREATE INDEX idx_user_roles_role ON user_roles (role_id);
 
 ALTER TABLE bookings
     ADD CONSTRAINT chk_bookings_time_range CHECK (start_time < end_time);
-
