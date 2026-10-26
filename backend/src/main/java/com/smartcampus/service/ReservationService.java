@@ -6,7 +6,10 @@ import com.smartcampus.entity.Booking;
 import com.smartcampus.exception.ReservationConflictException;
 import com.smartcampus.exception.ResourceNotFoundException;
 import com.smartcampus.repository.BookingRepository;
+import com.smartcampus.repository.ClassSessionRepository;
 import com.smartcampus.repository.RoomRepository;
+import com.smartcampus.repository.SeatReservationRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,11 +26,17 @@ public class ReservationService {
 
     private final BookingRepository bookingRepository;
     private final RoomRepository roomRepository;
+    private final ClassSessionRepository classSessionRepository;
+    private final SeatReservationRepository seatReservationRepository;
 
     public ReservationService(BookingRepository bookingRepository,
-                              RoomRepository roomRepository) {
+                              RoomRepository roomRepository,
+                              ClassSessionRepository classSessionRepository,
+                              SeatReservationRepository seatReservationRepository) {
         this.bookingRepository = bookingRepository;
         this.roomRepository = roomRepository;
+        this.classSessionRepository = classSessionRepository;
+        this.seatReservationRepository = seatReservationRepository;
     }
 
     // -------------------------------------------------------------------------
@@ -55,7 +64,7 @@ public class ReservationService {
         }
 
         // Verify room exists
-        roomRepository.findById(request.roomId())
+        roomRepository.findByIdForUpdate(request.roomId())
                 .orElseThrow(() -> new ResourceNotFoundException("Room not found: " + request.roomId()));
 
         // Conflict detection (overlap rule)
@@ -72,7 +81,17 @@ public class ReservationService {
                 request.startTime(),
                 request.endTime());
 
-        return toResponse(bookingRepository.save(booking));
+        try {
+            // Flush here so the database exclusion constraint is evaluated before
+            // this method returns. It closes the race left by the overlap query.
+            return toResponse(bookingRepository.saveAndFlush(booking));
+        } catch (DataIntegrityViolationException ex) {
+            if (DatabaseConflict.hasSqlState(ex, "23P01")) {
+                throw new ReservationConflictException(
+                        "Room " + request.roomId() + " is already booked during the requested time slot");
+            }
+            throw ex;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -118,11 +137,14 @@ public class ReservationService {
      */
     @Transactional
     public ReservationResponse cancel(Long id) {
-        Booking booking = findBooking(id);
+        Booking booking = bookingRepository.findByIdForUpdate(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation not found: " + id));
         if ("CANCELLED".equalsIgnoreCase(booking.getStatus())) {
             throw new IllegalArgumentException("Reservation " + id + " is already cancelled");
         }
         booking.cancel();
+        classSessionRepository.findByBookingId(id)
+                .ifPresent(session -> seatReservationRepository.cancelActiveForSession(session.getId()));
         return toResponse(bookingRepository.save(booking));
     }
 
@@ -145,4 +167,5 @@ public class ReservationService {
                 b.getStatus(),
                 b.getCreatedAt());
     }
+
 }
