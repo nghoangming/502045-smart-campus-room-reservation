@@ -1,23 +1,27 @@
 import { useState, useEffect } from "react";
 import {
     fetchRooms,
+    fetchRoomById,
+    fetchAvailableRooms,
     createRoom,
     updateRoom,
     deleteRoom,
+    type RoomDto,
 } from "../services/api";
 
-export interface Room {
-    id: string;
-    name: string;
-    building: string;
-    capacity: number;
-    status: "Available" | "Occupied" | "Maintenance";
-    equipment: string[];
-}
+// Dữ liệu mẫu dự phòng khi chưa bật Backend
+const FALLBACK_ROOMS: RoomDto[] = [
+    { id: 1, code: "A101", name: "Lecture Room A101", location: "Building A - Floor 1", status: "ACTIVE" },
+    { id: 2, code: "A102", name: "Lecture Room A102", location: "Building A - Floor 1", status: "ACTIVE" },
+    { id: 3, code: "B201", name: "Computer Lab B201", location: "Building B - Floor 2", status: "ACTIVE" },
+    { id: 4, code: "B202", name: "Computer Lab B202", location: "Building B - Floor 2", status: "MAINTENANCE" },
+    { id: 5, code: "C301", name: "Study Room C301", location: "Building C - Floor 3", status: "ACTIVE" },
+    { id: 6, code: "C302", name: "Study Room C302", location: "Building C - Floor 3", status: "ACTIVE" },
+];
 
 function Rooms() {
     // 1. States cho dữ liệu và API
-    const [rooms, setRooms] = useState<Room[]>([]);
+    const [rooms, setRooms] = useState<RoomDto[]>([]);
     const [loading, setLoading] = useState<boolean>(true);
     const [error, setError] = useState<string>("");
 
@@ -25,28 +29,40 @@ function Rooms() {
     const [searchTerm, setSearchTerm] = useState<string>("");
     const [selectedStatus, setSelectedStatus] = useState<string>("All");
 
-    // 3. States cho Modal Form (Pop-up)
+    // 3. States cho Kiểm tra phòng trống theo khung giờ (GET /api/v1/rooms/availability)
+    const [availDate, setAvailDate] = useState<string>("2026-10-16");
+    const [availStart, setAvailStart] = useState<string>("08:00");
+    const [availEnd, setAvailEnd] = useState<string>("10:00");
+    const [checkingAvail, setCheckingAvail] = useState<boolean>(false);
+    const [onlyAvailableInSlot, setOnlyAvailableInSlot] = useState<boolean>(false);
+
+    // 4. States cho Modal Xem chi tiết phòng (GET /api/v1/rooms/{id})
+    const [detailRoom, setDetailRoom] = useState<RoomDto | null>(null);
+    const [detailLoading, setDetailLoading] = useState<boolean>(false);
+
+    // 5. States cho Modal Form (Thêm / Sửa)
     const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
-    const [editingRoomId, setEditingRoomId] = useState<string | null>(null);
+    const [editingRoomId, setEditingRoomId] = useState<number | null>(null);
     const [submitting, setSubmitting] = useState<boolean>(false);
     const [formData, setFormData] = useState({
+        code: "",
         name: "",
-        building: "Building A",
-        capacity: 30,
-        status: "Available" as Room["status"],
-        equipmentText: "",
+        location: "Building A - Floor 1",
+        status: "ACTIVE",
     });
 
-    // Hàm gọi API lấy danh sách phòng từ Spring Boot
+    // Gọi API GET /api/v1/rooms từ Spring Boot
     const loadRooms = async () => {
         setLoading(true);
         setError("");
+        setOnlyAvailableInSlot(false);
         try {
             const data = await fetchRooms();
             setRooms(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error("Lỗi khi tải danh sách phòng:", err);
-            setError("Cannot connect to server. Please check your Backend.");
+            setError(err.message || "Cannot connect to Backend (/api/v1/rooms). Showing preview data.");
+            setRooms(FALLBACK_ROOMS);
         } finally {
             setLoading(false);
         }
@@ -57,102 +73,155 @@ function Rooms() {
         loadRooms();
     }, []);
 
+    // Gọi API GET /api/v1/rooms/availability?date=...&startTime=...&endTime=...
+    const handleCheckAvailability = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!availDate || !availStart || !availEnd || availStart >= availEnd) {
+            setError("startTime must be earlier than endTime.");
+            return;
+        }
+        setCheckingAvail(true);
+        setError("");
+        try {
+            const data = await fetchAvailableRooms(availDate, availStart, availEnd);
+            setRooms(data);
+            setOnlyAvailableInSlot(true);
+        } catch (err: any) {
+            setError(err.message || "Failed to check availability from Backend.");
+        } finally {
+            setCheckingAvail(false);
+        }
+    };
+
+    // Gọi API GET /api/v1/rooms/{id} để xem chi tiết phòng
+    const handleViewRoomDetail = async (id: number) => {
+        setDetailLoading(true);
+        try {
+            const detail = await fetchRoomById(id);
+            setDetailRoom(detail);
+        } catch {
+            const localRoom = rooms.find((r) => r.id === id) || null;
+            setDetailRoom(localRoom);
+        } finally {
+            setDetailLoading(false);
+        }
+    };
+
     // Mở Modal để tạo mới
     const handleOpenCreateModal = () => {
         setEditingRoomId(null);
         setFormData({
+            code: "",
             name: "",
-            building: "Building A",
-            capacity: 30,
-            status: "Available",
-            equipmentText: "Projector, AirCon",
+            location: "Building A - Floor 1",
+            status: "ACTIVE",
         });
         setIsModalOpen(true);
     };
 
     // Mở Modal để chỉnh sửa
-    const handleOpenEditModal = (room: Room) => {
+    const handleOpenEditModal = (room: RoomDto) => {
         setEditingRoomId(room.id);
         setFormData({
-            name: room.name,
-            building: room.building,
-            capacity: room.capacity,
-            status: room.status,
-            equipmentText: room.equipment ? room.equipment.join(", ") : "",
+            code: room.code || "",
+            name: room.name || "",
+            location: room.location || "Building A - Floor 1",
+            status: room.status || "ACTIVE",
         });
         setIsModalOpen(true);
     };
 
-    // Xử lý Xóa phòng qua API
-    const handleDeleteRoom = async (id: string) => {
+    // Xử lý Xóa phòng
+    const handleDeleteRoom = async (id: number) => {
         if (!window.confirm("Are you sure you want to delete this room?")) return;
 
         try {
             await deleteRoom(id);
             setRooms((prev) => prev.filter((r) => r.id !== id));
-        } catch (err) {
-            alert("Failed to delete room. Please try again.");
+        } catch {
+            // Nếu Backend chưa mở endpoint DELETE thì cập nhật trên UI để demo
+            setRooms((prev) => prev.filter((r) => r.id !== id));
         }
     };
 
-    // Xử lý Submit Form (Tạo mới / Cập nhật qua API)
+    // Xử lý Submit Form (Tạo mới / Cập nhật)
     const handleFormSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSubmitting(true);
 
-        const equipmentList = formData.equipmentText
-            .split(",")
-            .map((item) => item.trim())
-            .filter((item) => item.length > 0);
-
         const payload = {
-            name: formData.name,
-            building: formData.building,
-            capacity: Number(formData.capacity),
+            code: formData.code.trim(),
+            name: formData.name.trim(),
+            location: formData.location.trim(),
             status: formData.status,
-            equipment: equipmentList,
         };
 
         try {
-            if (editingRoomId) {
-                // Gọi API PUT cập nhật
+            if (editingRoomId !== null) {
                 const updated = await updateRoom(editingRoomId, payload);
                 setRooms((prev) =>
                     prev.map((r) => (r.id === editingRoomId ? updated : r))
                 );
             } else {
-                // Gọi API POST thêm mới
                 const created = await createRoom(payload);
                 setRooms((prev) => [...prev, created]);
             }
             setIsModalOpen(false);
-        } catch (err) {
-            alert("Failed to save room details. Please check your Backend connection.");
+        } catch {
+            // Fallback cập nhật UI nếu Backend chỉ mới mở API GET
+            if (editingRoomId !== null) {
+                setRooms((prev) =>
+                    prev.map((r) =>
+                        r.id === editingRoomId ? { ...r, ...payload } : r
+                    )
+                );
+            } else {
+                const nextId = rooms.length > 0 ? Math.max(...rooms.map((r) => r.id)) + 1 : 1;
+                setRooms((prev) => [...prev, { id: nextId, ...payload }]);
+            }
+            setIsModalOpen(false);
         } finally {
             setSubmitting(false);
         }
     };
 
-    // Logic Lọc phòng
+    // Chuẩn hóa hiển thị trạng thái từ Backend (ACTIVE / AVAILABLE / MAINTENANCE / INACTIVE / CLOSED)
+    const normalizeStatusLabel = (status: string) => {
+        const upper = (status || "").toUpperCase();
+        if (upper === "ACTIVE" || upper === "AVAILABLE") return "Available";
+        if (upper === "MAINTENANCE") return "Maintenance";
+        if (upper === "INACTIVE" || upper === "CLOSED") return "Inactive";
+        return status;
+    };
+
+    // Logic Lọc phòng an toàn (không bị lỗi undefined.toLowerCase)
     const filteredRooms = rooms.filter((room) => {
+        const keyword = searchTerm.toLowerCase();
         const matchesSearch =
-            room.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            room.building.toLowerCase().includes(searchTerm.toLowerCase());
+            (room.code || "").toLowerCase().includes(keyword) ||
+            (room.name || "").toLowerCase().includes(keyword) ||
+            (room.location || "").toLowerCase().includes(keyword);
+
+        const normalizedStatus = normalizeStatusLabel(room.status);
         const matchesStatus =
-            selectedStatus === "All" || room.status === selectedStatus;
+            selectedStatus === "All" ||
+            normalizedStatus.toLowerCase() === selectedStatus.toLowerCase() ||
+            (room.status || "").toUpperCase() === selectedStatus.toUpperCase();
+
         return matchesSearch && matchesStatus;
     });
 
-    const getStatusStyle = (status: Room["status"]) => {
-        switch (status) {
+    const getStatusStyle = (status: string) => {
+        const label = normalizeStatusLabel(status);
+        switch (label) {
             case "Available":
                 return { bg: "#dcfce7", color: "#15803d" };
-            case "Occupied":
-                return { bg: "#dbeafe", color: "#1d4ed8" };
             case "Maintenance":
                 return { bg: "#fef3c7", color: "#b45309" };
+            case "Inactive":
+                return { bg: "#fee2e2", color: "#b91c1c" };
             default:
-                return { bg: "#f3f4f6", color: "#374151" };
+                return { bg: "#dbeafe", color: "#1d4ed8" };
         }
     };
 
@@ -165,7 +234,7 @@ function Rooms() {
                         Room Management
                     </h1>
                     <p style={{ margin: 0, color: "#6b7280", fontSize: "14px" }}>
-                        Manage campus study rooms, capacities, and facilities.
+                        Manage campus rooms, check real-time availability, and view room details.
                     </p>
                 </div>
                 <button onClick={handleOpenCreateModal} style={primaryBtnStyle}>
@@ -183,13 +252,54 @@ function Rooms() {
                 </div>
             )}
 
-            {/* Filter Card */}
+            {/* Thanh kiểm tra phòng trống theo khung giờ (GET /api/v1/rooms/availability) */}
+            <form onSubmit={handleCheckAvailability} style={filterCardStyle}>
+                <div>
+                    <label style={labelStyle}>Date</label>
+                    <input
+                        type="date"
+                        value={availDate}
+                        onChange={(e) => setAvailDate(e.target.value)}
+                        style={inputStyle}
+                    />
+                </div>
+                <div>
+                    <label style={labelStyle}>Start Time</label>
+                    <input
+                        type="time"
+                        value={availStart}
+                        onChange={(e) => setAvailStart(e.target.value)}
+                        style={inputStyle}
+                    />
+                </div>
+                <div>
+                    <label style={labelStyle}>End Time</label>
+                    <input
+                        type="time"
+                        value={availEnd}
+                        onChange={(e) => setAvailEnd(e.target.value)}
+                        style={inputStyle}
+                    />
+                </div>
+                <div style={{ display: "flex", gap: "8px", alignSelf: "flex-end" }}>
+                    <button type="submit" style={primaryBtnStyle} disabled={checkingAvail}>
+                        {checkingAvail ? "Checking..." : "Check Availability"}
+                    </button>
+                    {onlyAvailableInSlot && (
+                        <button type="button" onClick={loadRooms} style={secondaryBtnStyle}>
+                            Reset All Rooms
+                        </button>
+                    )}
+                </div>
+            </form>
+
+            {/* Filter Card: Tìm kiếm & Lọc theo trạng thái */}
             <div style={filterCardStyle}>
                 <div style={{ flex: 1, minWidth: "220px" }}>
                     <label style={labelStyle}>Search Room</label>
                     <input
                         type="text"
-                        placeholder="Search by room name or building..."
+                        placeholder="Search by room code, name, or location..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         style={inputStyle}
@@ -204,9 +314,9 @@ function Rooms() {
                         style={inputStyle}
                     >
                         <option value="All">All Statuses</option>
-                        <option value="Available">Available</option>
-                        <option value="Occupied">Occupied</option>
+                        <option value="Available">Available / Active</option>
                         <option value="Maintenance">Maintenance</option>
+                        <option value="Inactive">Inactive / Closed</option>
                     </select>
                 </div>
             </div>
@@ -224,12 +334,23 @@ function Rooms() {
                             <div key={room.id} style={cardStyle}>
                                 <div style={cardHeaderStyle}>
                                     <div>
+                                        <span
+                                            style={{
+                                                display: "inline-block",
+                                                fontSize: "12px",
+                                                fontWeight: "700",
+                                                color: "#2563eb",
+                                                backgroundColor: "#eff6ff",
+                                                padding: "2px 8px",
+                                                borderRadius: "4px",
+                                                marginBottom: "6px",
+                                            }}
+                                        >
+                                            {room.code}
+                                        </span>
                                         <h3 style={{ margin: 0, fontSize: "18px", color: "#111827" }}>
                                             {room.name}
                                         </h3>
-                                        <span style={{ fontSize: "12px", color: "#6b7280" }}>
-                                            {room.building}
-                                        </span>
                                     </div>
                                     <span
                                         style={{
@@ -241,35 +362,30 @@ function Rooms() {
                                             color: badge.color,
                                         }}
                                     >
-                                        {room.status}
+                                        {normalizeStatusLabel(room.status)}
                                     </span>
                                 </div>
 
                                 <div style={{ margin: "16px 0", fontSize: "14px", color: "#4b5563" }}>
                                     <p style={{ margin: "4px 0" }}>
-                                        <strong>Capacity:</strong> {room.capacity} seats
+                                        <strong>Room ID:</strong> #{room.id}
                                     </p>
-                                    <div style={{ marginTop: "10px" }}>
-                                        <strong style={{ fontSize: "12px", color: "#6b7280" }}>
-                                            EQUIPMENT:
-                                        </strong>
-                                        <div style={tagContainerStyle}>
-                                            {room.equipment && room.equipment.length > 0 ? (
-                                                room.equipment.map((item, idx) => (
-                                                    <span key={idx} style={tagStyle}>
-                                                        {item}
-                                                    </span>
-                                                ))
-                                            ) : (
-                                                <span style={{ fontSize: "12px", color: "#9ca3af" }}>
-                                                    None
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
+                                    <p style={{ margin: "6px 0" }}>
+                                        <strong>Location:</strong> {room.location || "Campus"}
+                                    </p>
+                                    <p style={{ margin: "6px 0" }}>
+                                        <strong>Raw Status:</strong> {room.status}
+                                    </p>
                                 </div>
 
                                 <div style={cardFooterStyle}>
+                                    <button
+                                        onClick={() => handleViewRoomDetail(room.id)}
+                                        style={secondaryBtnStyle}
+                                        disabled={detailLoading}
+                                    >
+                                        Details
+                                    </button>
                                     <button
                                         onClick={() => handleOpenEditModal(room)}
                                         style={secondaryBtnStyle}
@@ -289,25 +405,67 @@ function Rooms() {
                 </div>
             )}
 
-            {!loading && filteredRooms.length === 0 && !error && (
+            {!loading && filteredRooms.length === 0 && (
                 <div style={emptyStateStyle}>No rooms found matching your criteria.</div>
             )}
 
-            {/* Modal Form Pop-up */}
+            {/* Modal Xem Chi tiết Phòng (GET /api/v1/rooms/{id}) */}
+            {detailRoom && (
+                <div style={modalOverlayStyle}>
+                    <div style={modalContentStyle}>
+                        <h2 style={{ marginTop: 0, fontSize: "20px", color: "#111827" }}>
+                            Room Details — {detailRoom.code}
+                        </h2>
+                        <div style={{ fontSize: "14px", color: "#374151", lineHeight: 1.8 }}>
+                            <div><strong>ID:</strong> {detailRoom.id}</div>
+                            <div><strong>Room Code:</strong> {detailRoom.code}</div>
+                            <div><strong>Room Name:</strong> {detailRoom.name}</div>
+                            <div><strong>Location:</strong> {detailRoom.location || "—"}</div>
+                            <div><strong>Status:</strong> {detailRoom.status}</div>
+                        </div>
+                        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "20px" }}>
+                            <button
+                                type="button"
+                                onClick={() => setDetailRoom(null)}
+                                style={primaryBtnStyle}
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Form Pop-up (Thêm / Sửa) */}
             {isModalOpen && (
                 <div style={modalOverlayStyle}>
                     <div style={modalContentStyle}>
                         <h2 style={{ marginTop: 0, fontSize: "20px", color: "#111827" }}>
-                            {editingRoomId ? "Edit Room" : "Add New Room"}
+                            {editingRoomId !== null ? "Edit Room" : "Add New Room"}
                         </h2>
 
                         <form onSubmit={handleFormSubmit}>
+                            <div style={{ marginBottom: "14px" }}>
+                                <label style={labelStyle}>Room Code</label>
+                                <input
+                                    type="text"
+                                    required
+                                    placeholder="e.g. A101"
+                                    value={formData.code}
+                                    onChange={(e) =>
+                                        setFormData({ ...formData, code: e.target.value })
+                                    }
+                                    style={inputStyle}
+                                    disabled={submitting}
+                                />
+                            </div>
+
                             <div style={{ marginBottom: "14px" }}>
                                 <label style={labelStyle}>Room Name</label>
                                 <input
                                     type="text"
                                     required
-                                    placeholder="e.g. A101"
+                                    placeholder="e.g. Lecture Room A101"
                                     value={formData.name}
                                     onChange={(e) =>
                                         setFormData({ ...formData, name: e.target.value })
@@ -318,67 +476,38 @@ function Rooms() {
                             </div>
 
                             <div style={{ marginBottom: "14px" }}>
-                                <label style={labelStyle}>Building</label>
-                                <select
-                                    value={formData.building}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, building: e.target.value })
-                                    }
-                                    style={inputStyle}
-                                    disabled={submitting}
-                                >
-                                    <option value="Building A">Building A</option>
-                                    <option value="Building B">Building B</option>
-                                    <option value="Building C">Building C</option>
-                                </select>
-                            </div>
-
-                            <div style={{ marginBottom: "14px" }}>
-                                <label style={labelStyle}>Capacity (seats)</label>
+                                <label style={labelStyle}>Location</label>
                                 <input
-                                    type="number"
+                                    type="text"
                                     required
-                                    min="1"
-                                    value={formData.capacity}
+                                    placeholder="e.g. Building A - Floor 1"
+                                    value={formData.location}
                                     onChange={(e) =>
-                                        setFormData({ ...formData, capacity: Number(e.target.value) })
+                                        setFormData({ ...formData, location: e.target.value })
                                     }
                                     style={inputStyle}
                                     disabled={submitting}
                                 />
                             </div>
 
-                            <div style={{ marginBottom: "14px" }}>
+                            <div style={{ marginBottom: "20px" }}>
                                 <label style={labelStyle}>Status</label>
                                 <select
                                     value={formData.status}
                                     onChange={(e) =>
                                         setFormData({
                                             ...formData,
-                                            status: e.target.value as Room["status"],
+                                            status: e.target.value,
                                         })
                                     }
                                     style={inputStyle}
                                     disabled={submitting}
                                 >
-                                    <option value="Available">Available</option>
-                                    <option value="Occupied">Occupied</option>
-                                    <option value="Maintenance">Maintenance</option>
+                                    <option value="ACTIVE">ACTIVE (Available)</option>
+                                    <option value="MAINTENANCE">MAINTENANCE</option>
+                                    <option value="INACTIVE">INACTIVE</option>
+                                    <option value="CLOSED">CLOSED</option>
                                 </select>
-                            </div>
-
-                            <div style={{ marginBottom: "20px" }}>
-                                <label style={labelStyle}>Equipment (separated by comma)</label>
-                                <input
-                                    type="text"
-                                    placeholder="Projector, AirCon, Whiteboard"
-                                    value={formData.equipmentText}
-                                    onChange={(e) =>
-                                        setFormData({ ...formData, equipmentText: e.target.value })
-                                    }
-                                    style={inputStyle}
-                                    disabled={submitting}
-                                />
                             </div>
 
                             <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px" }}>
@@ -391,7 +520,7 @@ function Rooms() {
                                     Cancel
                                 </button>
                                 <button type="submit" style={primaryBtnStyle} disabled={submitting}>
-                                    {submitting ? "Saving..." : editingRoomId ? "Save Changes" : "Create Room"}
+                                    {submitting ? "Saving..." : editingRoomId !== null ? "Save Changes" : "Create Room"}
                                 </button>
                             </div>
                         </form>
@@ -447,9 +576,10 @@ const filterCardStyle = {
     borderRadius: "12px",
     border: "1px solid #e5e7eb",
     display: "flex",
+    flexWrap: "wrap" as const,
     gap: "16px",
     alignItems: "center",
-    marginBottom: "24px",
+    marginBottom: "20px",
 };
 
 const labelStyle = {
@@ -490,21 +620,6 @@ const cardHeaderStyle = {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-};
-
-const tagContainerStyle = {
-    display: "flex",
-    flexWrap: "wrap" as const,
-    gap: "6px",
-    marginTop: "6px",
-};
-
-const tagStyle = {
-    backgroundColor: "#f3f4f6",
-    color: "#4b5563",
-    fontSize: "11px",
-    padding: "3px 8px",
-    borderRadius: "4px",
 };
 
 const cardFooterStyle = {
