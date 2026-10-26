@@ -1,6 +1,8 @@
 package com.smartcampus.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.CannotAcquireLockException;
+import jakarta.persistence.PessimisticLockException;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
@@ -25,6 +27,18 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(ReservationConflictException ex) {
         return new ErrorResponse(409, ex.getMessage());
+    }
+
+    @ExceptionHandler(SeatConflictException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleSeatConflict(SeatConflictException ex) {
+        return new ErrorResponse(409, ex.getMessage());
+    }
+
+    @ExceptionHandler({PessimisticLockException.class, CannotAcquireLockException.class})
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleLockConflict(Exception ex) {
+        return new ErrorResponse(409, "Resource is currently busy. Please retry.");
     }
 
     @ExceptionHandler({IllegalArgumentException.class, MissingServletRequestParameterException.class,
