@@ -29,9 +29,10 @@ pending('Attendance QR check-in – tuần 5 (chờ API M2/M3)', () => {
   });
 
   test('QR không hợp lệ bị từ chối', async ({ request }) => {
+    test.skip(!classSessionId, 'Cần TEST_CLASS_SESSION_ID để phân biệt QR sai với session không tồn tại');
     const { res } = await postJson(request, '/attendance/check-in', {
       qrCode: 'invalid-qr-code',
-      classSessionId: classSessionId || 1,
+      classSessionId,
     });
     expect(res.status()).toBe(400);
   });
