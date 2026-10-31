@@ -23,6 +23,27 @@ export async function postJson<T = unknown>(
   return { res, body };
 }
 
+export async function putJson<T = unknown>(
+  request: APIRequestContext,
+  path: string,
+  data: unknown,
+  headers: Record<string, string> = {},
+): Promise<{ res: APIResponse; body: T }> {
+  const res = await request.put(`${API_PREFIX}${path}`, { data, headers });
+  const body = (await res.json().catch(() => null)) as T;
+  return { res, body };
+}
+
+export async function deleteJson<T = unknown>(
+  request: APIRequestContext,
+  path: string,
+  headers: Record<string, string> = {},
+): Promise<{ res: APIResponse; body: T }> {
+  const res = await request.delete(`${API_PREFIX}${path}`, { headers });
+  const body = (await res.json().catch(() => null)) as T;
+  return { res, body };
+}
+
 /** Lấy id phòng đầu tiên từ GET /rooms để các test không hard-code id. */
 export async function firstRoomId(request: APIRequestContext): Promise<string> {
   const { res, body } = await getJson<Array<{ id: string | number }>>(request, '/rooms');

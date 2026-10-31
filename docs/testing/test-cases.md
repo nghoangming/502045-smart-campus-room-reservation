@@ -1,4 +1,4 @@
-# Test Cases – M4 (Tuần 1–4)
+# Test Cases – M4 (Tuần 1–5)
 
 **Phụ trách:** Nguyễn Văn Tâm
 **Trạng thái:** ✅ đã có test chạy · ⏳ `@pending` chờ API hoặc dữ liệu test
@@ -28,7 +28,7 @@
 | TC-LOGIN-07 | Bấm Show/Hide | Chuyển kiểu hiển thị password/text | ✅ |
 | TC-LOGIN-08 | Mở URL không tồn tại | Điều hướng về trang login | ✅ |
 
-### Login API – dự kiến `tests/api/auth/login.spec.ts`
+### Login API – `tests/api/auth/login.spec.ts`
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
@@ -50,7 +50,7 @@
 | TC-ROOM-05 | `GET /rooms/{id}` không tồn tại | 404, response có thông tin lỗi | ✅ |
 | TC-HEALTH-01 | `GET /health` | Backend trả 200 | ✅ |
 
-### Schedule API – dự kiến `tests/api/rooms/schedule.spec.ts`
+### Schedule API – `tests/api/rooms/schedule.spec.ts`
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
@@ -60,7 +60,7 @@
 | TC-SCH-04 | Ngày sai định dạng hoặc thiếu date | 400 | ⏳ Chưa có API test |
 | TC-SCH-05 | Room ID không tồn tại | 404 | ⏳ Chưa có API test |
 
-### Availability API – dự kiến `tests/api/rooms/availability.spec.ts`
+### Availability API – `tests/api/rooms/availability.spec.ts`
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
@@ -103,3 +103,31 @@ Test được đặt tại `tests/api/seats/seat-concurrency.spec.ts`; đang `@p
 | TC-CON-02 | Hai request đồng thời đặt cùng phòng/cùng khung giờ | Chính xác một request 200/201; request còn lại 409/422 | ⏳ |
 
 **Điều kiện kiểm thử concurrency:** hai request phải dùng cùng tài nguyên và khung giờ, được gửi đồng thời trên DB test dùng chung. Không chấp nhận trường hợp cả hai request thành công. Chốt lại status code theo hợp đồng API trước khi bỏ `@pending`.
+
+## Tuần 5 – QR Attendance và Resource
+
+Các test được viết theo hợp đồng mô tả trong `docs/architecture/openapi-spec.yaml`. Backend trong nhánh hiện tại chưa có controller cho Attendance hoặc Resource nên suite đang `@pending`.
+
+### QR Check-in – `tests/api/attendance/qr-checkin.spec.ts`
+
+| ID | Mô tả | Kết quả mong đợi | Trạng thái |
+|----|-------|------------------|------------|
+| TC-QR-01 | Check-in bằng QR hợp lệ của đúng lớp | 201; tạo attendance với ID, trạng thái PRESENT/LATE và checkedInAt | ⏳ |
+| TC-QR-02 | QR không hợp lệ | 400 | ⏳ |
+| TC-QR-03 | QR hết hạn | 400 | ⏳ |
+| TC-QR-04 | QR hợp lệ nhưng thuộc class session khác | 409 | ⏳ |
+
+Môi trường test cần cấp `TEST_QR_VALID_CODE`, `TEST_QR_EXPIRED_CODE`, `TEST_CLASS_SESSION_ID` và `TEST_OTHER_CLASS_SESSION_ID` tương ứng.
+
+### Resource CRUD và status – `tests/api/resources/resources.spec.ts`
+
+| ID | Mô tả | Kết quả mong đợi | Trạng thái |
+|----|-------|------------------|------------|
+| TC-RES-API-01 | Tạo resource cho phòng | 201; response có ID, tên, số lượng và status | ⏳ |
+| TC-RES-API-02 | Đọc resource vừa tạo | 200; dữ liệu khớp | ⏳ |
+| TC-RES-API-03 | Cập nhật số lượng và status | 200; giá trị mới được lưu | ⏳ |
+| TC-RES-API-04 | Lọc danh sách resource theo phòng | 200; danh sách có resource vừa tạo | ⏳ |
+| TC-RES-API-05 | Xóa resource | 204; test cleanup xóa resource đã tạo | ⏳ |
+| TC-RES-API-06 | Thiếu roomId/resourceName | 400 hoặc 422 theo contract validation | ⏳ |
+
+Test CRUD cần `TEST_ADMIN_TOKEN` có quyền quản trị và sẽ xóa resource do chính test tạo. Các status code cần khớp OpenAPI/API implementation trước khi bỏ `@pending`.

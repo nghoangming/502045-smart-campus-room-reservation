@@ -34,7 +34,10 @@ npm run report       # mở báo cáo HTML
 Biến môi trường hữu ích:
 
 - `SKIP_WEB_SERVER=true`: không tự bật frontend (khi bạn đã chạy `npm run dev` hoặc chỉ chạy API test)
-- `RUN_PENDING=true`: bật các test chờ endpoint (Auth, Schedule, Availability)
+- `RUN_PENDING=true`: bật các test đang chờ API (Auth, Schedule, Availability, Reservation, Seat, QR Attendance, Resource)
+- `TEST_ADMIN_TOKEN`: bearer token tài khoản admin dùng cho Resource CRUD test tuần 5
+- `TEST_QR_VALID_CODE`, `TEST_QR_EXPIRED_CODE`: QR test hợp lệ/hết hạn cho Attendance tuần 5
+- `TEST_CLASS_SESSION_ID`, `TEST_OTHER_CLASS_SESSION_ID`: class session khớp/không khớp với QR
 
 API test cần backend đang chạy ở `API_URL`: `cd backend && mvn spring-boot:run`.
 
