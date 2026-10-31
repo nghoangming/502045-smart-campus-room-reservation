@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, ArrowUpRight, BadgeCheck, Building2, Check, ChevronRight, CircleHelp, Clock3, Cpu, DoorOpen, Headphones, MapPin, QrCode, ShieldCheck, Sparkles, UsersRound, Wifi, Wrench } from "lucide-react";
+import { ArrowRight, ArrowUpRight, BadgeCheck, Building2, Check, Cpu, DoorOpen, MapPin, QrCode, ShieldCheck, UsersRound, Wifi, Wrench } from "lucide-react";
 
 const initialSeats = ["free","free","occupied","free","free","free","free","free","held","free","free","occupied","free","free","free","free","occupied","free","free","free","free","free","free","held","free","free","occupied","free","free","free"];
 function SeatPicker() {
