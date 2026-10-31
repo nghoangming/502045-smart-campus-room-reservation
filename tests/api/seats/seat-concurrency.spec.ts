@@ -1,53 +1,76 @@
 import { test, expect } from '@playwright/test';
-import { bookingPaths, Reservation } from '../../fixtures/booking';
-import { getJson, postJson } from '../../helpers/api';
+import { bookingPaths, bookingSlot, Reservation, reservationId } from '../../fixtures/booking';
+import { firstRoomId, getJson, patchJson, postJson } from '../../helpers/api';
 import { pending } from '../../helpers/pending';
 
-type Seat = { id: string | number; roomId?: string | number; status?: string };
+type ClassSession = { id: number | string; bookingId: number | string };
+type Seat = { id: number | string; roomId: number | string; status: string };
+type SeatReservation = { id: number | string; status: string };
 
-pending('Seat booking concurrency – tuần 4 (chờ API M2/M3)', () => {
-  test('hai yêu cầu đồng thời đặt cùng ghế: chỉ một yêu cầu thành công', async ({ request }) => {
-    const { res: seatsRes, body: seats } = await getJson<Seat[]>(request, bookingPaths.seats);
-    expect(seatsRes.status()).toBe(200);
-    expect(seats.length).toBeGreaterThan(0);
-    const seat = seats[0];
-    const date = new Date();
-    date.setDate(date.getDate() + 9);
-    const payload = {
-      seatId: String(seat.id),
-      roomId: seat.roomId,
-      date: date.toISOString().slice(0, 10),
-      startTime: '13:00',
-      endTime: '14:00',
-    };
+pending('Seat and room concurrency – tuần 4 (chờ backend tuần 3–4 được tích hợp)', () => {
+  test('hai request đồng thời đặt cùng ghế trong cùng class session: chỉ một request thành công', async ({ request }) => {
+    const roomId = await firstRoomId(request);
+    const slot = bookingSlot(36);
+    const booking = await postJson<Reservation>(request, bookingPaths.classroomReservations, {
+      roomId: Number(roomId), ...slot,
+    });
+    expect(booking.res.status()).toBe(201);
+    const bookingId = reservationId(booking.body);
 
-    const responses = await Promise.all([
-      postJson<Reservation>(request, `${bookingPaths.seats}/reservations`, payload),
-      postJson<Reservation>(request, `${bookingPaths.seats}/reservations`, payload),
-    ]);
-    const statuses = responses.map(({ res }) => res.status()).sort((a, b) => a - b);
-    expect(statuses.filter((status) => [200, 201].includes(status))).toHaveLength(1);
-    expect(statuses.filter((status) => [409, 422].includes(status))).toHaveLength(1);
+    try {
+      const sessionResponse = await postJson<ClassSession>(request, bookingPaths.classSessions, {
+        bookingId: Number(bookingId),
+        courseCode: `QA${Date.now()}`,
+        title: 'Playwright concurrency test session',
+      });
+      expect(sessionResponse.res.status()).toBe(201);
+
+      const sessionId = String(sessionResponse.body.id);
+      const { res: seatsResponse, body: seats } = await getJson<Seat[]>(
+        request,
+        `${bookingPaths.classSessions}/${sessionId}/seats`,
+      );
+      expect(seatsResponse.status()).toBe(200);
+      test.skip(seats.length === 0, 'Cần seed ít nhất một ghế cho room của class session');
+      const seat = seats.find((item) => item.status === 'AVAILABLE');
+      test.skip(!seat, 'Cần ít nhất một ghế AVAILABLE cho room của class session');
+
+      const attempts = await Promise.all([
+        postJson<SeatReservation>(request, bookingPaths.seatReservations, {
+          classSessionId: Number(sessionId), seatId: Number(seat!.id),
+        }),
+        postJson<SeatReservation>(request, bookingPaths.seatReservations, {
+          classSessionId: Number(sessionId), seatId: Number(seat!.id),
+        }),
+      ]);
+      const statuses = attempts.map(({ res }) => res.status());
+      expect(statuses.filter((status) => status === 201)).toHaveLength(1);
+      expect(statuses.filter((status) => status === 409)).toHaveLength(1);
+    } finally {
+      await patchJson(request, `${bookingPaths.classroomReservations}/${bookingId}/cancel`);
+    }
   });
 
-  test('hai yêu cầu đồng thời đặt cùng phòng cùng khung giờ: chỉ một yêu cầu thành công', async ({ request }) => {
-    const rooms = await getJson<Array<{ id: string | number }>>(request, '/rooms');
-    expect(rooms.res.status()).toBe(200);
-    const roomId = String(rooms.body[0].id);
-    const date = new Date();
-    date.setDate(date.getDate() + 10);
-    const payload = {
-      roomId,
-      date: date.toISOString().slice(0, 10),
-      startTime: '15:00',
-      endTime: '16:00',
-    };
-    const results = await Promise.all([
-      postJson(request, bookingPaths.reservations, payload),
-      postJson(request, bookingPaths.reservations, payload),
+  test('hai request đồng thời đặt cùng phòng và khung giờ: chỉ một request thành công', async ({ request }) => {
+    const roomId = await firstRoomId(request);
+    const slot = bookingSlot(37);
+    const attempts = await Promise.all([
+      postJson<Reservation>(request, bookingPaths.studyRoomReservations, {
+        roomId: Number(roomId), ...slot,
+      }),
+      postJson<Reservation>(request, bookingPaths.studyRoomReservations, {
+        roomId: Number(roomId), ...slot,
+      }),
     ]);
-    const statuses = results.map(({ res }) => res.status());
-    expect(statuses.filter((status) => [200, 201].includes(status))).toHaveLength(1);
-    expect(statuses.filter((status) => [409, 422].includes(status))).toHaveLength(1);
+
+    const winners = attempts.filter(({ res }) => res.status() === 201);
+    try {
+      expect(winners).toHaveLength(1);
+      expect(attempts.filter(({ res }) => res.status() === 409)).toHaveLength(1);
+    } finally {
+      await Promise.all(winners.map(({ body }) =>
+        patchJson(request, `${bookingPaths.studyRoomReservations}/${reservationId(body)}/cancel`),
+      ));
+    }
   });
 });

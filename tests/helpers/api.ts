@@ -34,6 +34,17 @@ export async function putJson<T = unknown>(
   return { res, body };
 }
 
+export async function patchJson<T = unknown>(
+  request: APIRequestContext,
+  path: string,
+  data?: unknown,
+  headers: Record<string, string> = {},
+): Promise<{ res: APIResponse; body: T }> {
+  const res = await request.patch(`${API_PREFIX}${path}`, { data, headers });
+  const body = (await res.json().catch(() => null)) as T;
+  return { res, body };
+}
+
 export async function deleteJson<T = unknown>(
   request: APIRequestContext,
   path: string,
