@@ -54,21 +54,21 @@
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
-| TC-SCH-01 | Lấy lịch phòng theo ngày | 200, trả array | ⏳ Chưa có API test |
-| TC-SCH-02 | Kiểm tra thời gian từng mục lịch | start trước end | ⏳ Chưa có API test |
-| TC-SCH-03 | Ngày không có lịch | 200, array rỗng | ⏳ Chưa có API test |
-| TC-SCH-04 | Ngày sai định dạng hoặc thiếu date | 400 | ⏳ Chưa có API test |
-| TC-SCH-05 | Room ID không tồn tại | 404 | ⏳ Chưa có API test |
+| TC-SCH-01 | Lấy lịch phòng theo ngày | 200, trả array | ⏳ pending |
+| TC-SCH-02 | Kiểm tra thời gian từng mục lịch | `startTime` trước `endTime` | ⏳ pending |
+| TC-SCH-03 | Ngày không có lịch | 200, array rỗng | ⏳ pending |
+| TC-SCH-04 | Ngày sai định dạng hoặc thiếu date | 400 | ⏳ pending |
+| TC-SCH-05 | Room ID số không tồn tại | 404 | ⏳ pending |
 
 ### Availability API – `tests/api/rooms/availability.spec.ts`
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
-| TC-AVL-01 | Truy vấn khung giờ trống | 200, trả danh sách phòng khả dụng | ⏳ Chưa có API test |
-| TC-AVL-02 | Kiểm tra cấu trúc response | JSON array; mỗi phòng có ID | ⏳ Chưa có API test |
-| TC-AVL-03 | end ≤ start | 400 | ⏳ Chưa có API test |
-| TC-AVL-04 | Thiếu start/end | 400 | ⏳ Chưa có API test |
-| TC-AVL-05 | Giờ sai định dạng | 400 | ⏳ Chưa có API test |
+| TC-AVL-01 | `GET /rooms/availability` với khung giờ trống | 200, trả danh sách phòng khả dụng | ⏳ pending |
+| TC-AVL-02 | Kiểm tra cấu trúc response | JSON array; mỗi phòng có ID | ⏳ pending |
+| TC-AVL-03 | endTime ≤ startTime | 400 | ⏳ pending |
+| TC-AVL-04 | Thiếu date/startTime/endTime | 400 | ⏳ pending |
+| TC-AVL-05 | Ngày hoặc giờ sai định dạng | 400 | ⏳ pending |
 
 ### Schedule UI – `tests/e2e/schedule/room-schedule.spec.ts`
 
@@ -81,28 +81,30 @@
 
 ## Tuần 3 – Reservation API
 
-Test được đặt tại `tests/api/reservations/reservations.spec.ts`; đang `@pending` đến khi M2 triển khai API và thống nhất request/response.
+Test được đặt tại `tests/api/reservations/reservations.spec.ts`; đã chỉnh theo backend mới nhất trên `origin/develop`. Endpoint tạo là `/study-room-reservations`, thời gian dùng ISO OffsetDateTime và hủy qua `PATCH /{id}/cancel`. Suite vẫn `@pending` trên feature branch đến khi backend được tích hợp và test DB sẵn sàng.
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
-| TC-RES-01 | Đặt phòng thành công | 201; room/date/start/end khớp request | ⏳ |
+| TC-RES-01 | Đặt phòng tự học thành công | 201; roomId/startTime/endTime khớp request | ⏳ |
 | TC-RES-02 | Tạo booking chồng lấn cùng phòng | Lần đầu 201, lần overlap 409 | ⏳ |
 | TC-RES-03 | Booking liền kề (start bằng end booking trước) | Được chấp nhận, không tính overlap | ⏳ |
 | TC-RES-04 | end bằng hoặc trước start | 400 | ⏳ |
 | TC-RES-05 | Ngày/giờ sai định dạng hoặc thiếu trường | 400 | ⏳ |
-| TC-RES-06 | Hủy booking vừa tạo | Hủy 200/204; trạng thái sau hủy là CANCELLED | ⏳ |
-| TC-RES-07 | Hủy ID không tồn tại | 404 | ⏳ |
+| TC-RES-06 | Hủy booking vừa tạo bằng PATCH | 200; response có trạng thái CANCELLED | ⏳ |
+| TC-RES-07 | Hủy ID không tồn tại bằng PATCH | 404 | ⏳ |
 
 ## Tuần 4 – kiểm thử concurrency
 
-Test được đặt tại `tests/api/seats/seat-concurrency.spec.ts`; đang `@pending` đến khi Reservation/Seat API và dữ liệu ghế test sẵn sàng.
+Test được đặt tại `tests/api/seats/seat-concurrency.spec.ts`; đã chỉnh theo backend `origin/develop`: tạo class session từ booking, lấy ghế theo session, đặt qua `/seat-reservations`. Đang `@pending` đến khi backend được tích hợp và DB có ghế mẫu.
 
 | ID | Mô tả | Kết quả mong đợi | Trạng thái |
 |----|-------|------------------|------------|
-| TC-CON-01 | Hai request đồng thời đặt cùng ghế/cùng khung giờ | Chính xác một request 200/201; request còn lại 409/422 | ⏳ |
-| TC-CON-02 | Hai request đồng thời đặt cùng phòng/cùng khung giờ | Chính xác một request 200/201; request còn lại 409/422 | ⏳ |
+| TC-CON-01 | Hai request đồng thời đặt cùng ghế/cùng class session | Chính xác một request 201; request còn lại 409 | ⏳; hiện dùng cùng user placeholder |
+| TC-CON-02 | Hai request đồng thời đặt cùng phòng/cùng khung giờ | Chính xác một request 201; request còn lại 409 | ⏳ |
 
 **Điều kiện kiểm thử concurrency:** hai request phải dùng cùng tài nguyên và khung giờ, được gửi đồng thời trên DB test dùng chung. Không chấp nhận trường hợp cả hai request thành công. Chốt lại status code theo hợp đồng API trước khi bỏ `@pending`.
+
+**Giới hạn hiện tại:** backend Reservation/Seat đang gán mọi request vào user ID placeholder `1`. Test xác nhận tranh chấp và tính duy nhất của ghế, chưa mô phỏng hai tài khoản khác nhau; bổ sung hai token riêng sau khi auth được tích hợp.
 
 ## Tuần 5 – QR Attendance và Resource
 
