@@ -1,7 +1,8 @@
-/** Dữ liệu phòng mẫu hiện có trong RoomService (stub) của backend. */
+/** Dữ liệu dự phòng từng dùng với RoomService stub; API tests lấy phòng thật qua GET /rooms. */
 export const stubRooms = [
   { id: 'B104', name: 'B-104', type: 'THEORY' },
   { id: 'SR101', name: 'Study Room 101', type: 'STUDY' },
 ];
 
-export const NOT_FOUND_ROOM_ID = 'KHONG-TON-TAI-999';
+// RoomController parses this as Long; use a numeric absent ID to exercise 404, not 400 parsing errors.
+export const NOT_FOUND_ROOM_ID = '999999999';
