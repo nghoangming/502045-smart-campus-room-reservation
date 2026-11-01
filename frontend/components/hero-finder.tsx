@@ -22,9 +22,10 @@ export function HeroFinder() {
     <div className="hero-image" />
     <div className="hero-content container">
       <div className="hero-copy"><div className="eyebrow hero-eyebrow"><span className="eyebrow-line" /> NỀN TẢNG KHÔNG GIAN HỌC TẬP THẾ HỆ MỚI</div>
-        <h1>Không gian học tập <em>thông minh.</em><br />Đặt chỗ trong <em>tích tắc.</em></h1>
+        <h1>Không gian học tập <em>thông minh.</em><br />Chọn chỗ trong <em>tích tắc.</em></h1>
         <p>Số hóa trải nghiệm học tập tại TDTU. Khám phá giảng đường, phòng Lab và không gian tự học — tất cả trong một nền tảng.</p>
         <div className="hero-highlights"><span><span className="check-mark">✓</span> Tìm phòng dễ dàng</span><span><span className="check-mark">✓</span> Chọn ghế trực quan</span><span><span className="check-mark">✓</span> Check-in bằng QR</span></div>
+        <div className="hero-role-actions"><a href="/login">Đăng nhập Sinh viên / Giảng viên <ArrowRight size={15} /></a><a href="/admin/login">Đăng nhập Quản trị <ArrowRight size={15} /></a></div>
       </div>
       <div id="tra-cuu" className="finder-shell"><div className="finder-top"><div><span className="finder-kicker">BẮT ĐẦU TẠI ĐÂY</span><h2>Tìm không gian phù hợp với bạn</h2></div><span className="finder-top-note"><span className="status-dot" /> Khám phá không gian</span></div>
         <form className="finder-form" onSubmit={e => { e.preventDefault(); setSearched(true); }}>
