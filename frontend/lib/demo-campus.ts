@@ -3,6 +3,9 @@ import { mockAdminApi, type Incident, type Reservation, type Room, type Seat } f
 export type Session = { id: number; subject: string; className: string; roomId: number; roomCode: string; startTime: string; endTime: string; status: "Sắp diễn ra" | "Đang học" | "Đã kết thúc"; teacherId: number };
 export type CampusUser = { id: number; name: string; email: string; role: "ADMIN" | "TEACHER" | "STUDENT"; status: "ACTIVE" | "INACTIVE" };
 export type Equipment = { id: number; roomId: number; name: string; status: "Tốt" | "Cần kiểm tra" };
+export type RoomPurpose = "THEORY" | "PRACTICE";
+export const demoRoomPurposes: Record<number, RoomPurpose> = { 1: "THEORY", 2: "THEORY", 3: "PRACTICE", 4: "THEORY", 5: "THEORY", 6: "THEORY" };
+export type AttendanceSeat = { seatNumber: number; studentId?: string; studentName?: string; status: "PRESENT" | "ABSENT" | "EMPTY"; checkedInAt?: string };
 
 const day = (offset: number, hour: number) => {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Ho_Chi_Minh", year: "numeric", month: "numeric", day: "numeric" }).formatToParts(new Date());
@@ -28,6 +31,7 @@ const equipment: Equipment[] = [
   { id: 3, roomId: 1, name: "Điều hòa trung tâm", status: "Tốt" },
   { id: 4, roomId: 2, name: "Micro không dây", status: "Cần kiểm tra" },
 ];
+const studentNames = ["Nguyễn Minh Anh", "Trần Gia Huy", "Lê Thu Hà", "Phạm Quốc Bảo", "Võ Thanh Tùng", "Đặng Mỹ Linh", "Hoàng Nhật Minh", "Bùi Ngọc Lan", "Nguyễn Hoài Nam", "Trịnh Phương Thảo", "Phan Minh Đức", "Đỗ Khánh Vy", "Lâm Gia Bảo", "Mai Thảo Nguyên", "Trần Anh Quân", "Lê Hải Yến", "Vũ Ngọc Hân", "Nguyễn Quốc Khánh", "Phạm Thanh Trúc", "Hoàng Đức Minh", "Đinh Thu Uyên", "Trương Gia Hưng", "Hồ Mỹ Duyên", "Cao Hoàng Phúc"];
 const clone = <T,>(value: T): T => structuredClone(value);
 const seatAssignments = new Map<number, { sessionId: number; seatId: number }>();
 export const demoSeatApi = {
@@ -49,6 +53,15 @@ export const demoCampusApi = {
   seats: (): Promise<Seat[]> => mockAdminApi.listSeats(),
   incidents: (): Promise<Incident[]> => mockAdminApi.listIncidents(),
   sessions: async (): Promise<Session[]> => clone(sessions),
+  attendance: async (sessionId: number): Promise<AttendanceSeat[]> => {
+    const session = sessions.find(item => item.id === sessionId);
+    if (!session) return [];
+    return Array.from({ length: 30 }, (_, index) => {
+      if (index >= studentNames.length) return { seatNumber: index + 1, status: "EMPTY" as const };
+      const present = index % 6 !== (sessionId % 3) + 2;
+      return { seatNumber: index + 1, studentId: `SV${String(sessionId * 100 + index + 1).padStart(6, "0")}`, studentName: studentNames[(index + sessionId - 701) % studentNames.length], status: present ? "PRESENT" as const : "ABSENT" as const, checkedInAt: present ? new Date(new Date(session.startTime).getTime() - 5 * 60_000 + index * 60_000).toISOString() : undefined };
+    });
+  },
   users: async (): Promise<CampusUser[]> => clone(users),
   equipment: async (): Promise<Equipment[]> => clone(equipment),
 };

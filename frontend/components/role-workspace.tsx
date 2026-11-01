@@ -14,7 +14,7 @@ import { LearningViews } from "@/components/learning-views";
 
 const nav = {
   ADMIN: [{ id: "overview", title: "Tổng quan", icon: LayoutDashboard }, { id: "rooms", title: "Phòng & thiết bị", icon: DoorOpen }, { id: "bookings", title: "Yêu cầu đặt phòng", icon: CalendarDays }, { id: "users", title: "Người dùng", icon: UsersRound }, { id: "incidents", title: "Sự cố", icon: Wrench }],
-  TEACHER: [{ id: "overview", title: "Tổng quan", icon: LayoutDashboard }, { id: "schedule", title: "Lịch giảng dạy", icon: CalendarDays }, { id: "bookings", title: "Đặt phòng", icon: DoorOpen }, { id: "seats", title: "Chỗ ngồi lớp học", icon: UsersRound }, { id: "attendance", title: "Điểm danh", icon: ClipboardCheck }, { id: "incidents", title: "Báo cáo sự cố", icon: Wrench }],
+  TEACHER: [{ id: "overview", title: "Tổng quan", icon: LayoutDashboard }, { id: "schedule", title: "Lịch giảng dạy", icon: CalendarDays }, { id: "bookings", title: "Đặt phòng", icon: DoorOpen }, { id: "attendance", title: "Điểm danh", icon: ClipboardCheck }, { id: "incidents", title: "Báo cáo sự cố", icon: Wrench }],
   STUDENT: [{ id: "overview", title: "Tổng quan", icon: LayoutDashboard }, { id: "schedule", title: "Lịch của tôi", icon: CalendarDays }, { id: "seats", title: "Tìm chỗ ngồi", icon: Search }, { id: "checkin", title: "Check-in QR", icon: QrCode }, { id: "incidents", title: "Báo cáo sự cố", icon: Wrench }],
 };
 const headings: Record<Role, { title: string; subtitle: string; kicker: string }> = {
