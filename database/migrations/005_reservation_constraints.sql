@@ -1,12 +1,9 @@
--- Reservation is stored in the existing bookings table (do not create a second table).
--- Apply once, after 001-004. Run the whole file, not individual statements.
 BEGIN;
 SET LOCAL lock_timeout = '10s';
 
 CREATE EXTENSION IF NOT EXISTS btree_gist;
 LOCK TABLE bookings IN ACCESS EXCLUSIVE MODE;
 
--- Preserve legacy rows while aligning status values with the OpenAPI contract.
 UPDATE bookings
 SET status = CASE upper(btrim(status))
     WHEN 'APPROVED' THEN 'CONFIRMED'

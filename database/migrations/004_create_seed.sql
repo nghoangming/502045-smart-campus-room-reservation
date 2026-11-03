@@ -13,14 +13,19 @@ JOIN users ON users.user_code = demo.user_code
 JOIN roles ON roles.role_name = demo.role_name
 ON CONFLICT DO NOTHING;
 
-INSERT INTO rooms (room_code, name, location, status) VALUES
-    ('A101', 'Lecture Room A101', 'Building A - Floor 1', 'ACTIVE'),
-    ('A102', 'Lecture Room A102', 'Building A - Floor 1', 'ACTIVE'),
-    ('B201', 'Computer Lab B201', 'Building B - Floor 2', 'ACTIVE'),
-    ('B202', 'Computer Lab B202', 'Building B - Floor 2', 'MAINTENANCE'),
+INSERT INTO rooms (room_code, name, location, status)
+VALUES
+    ('A101', 'Computer Lab A101', 'Building A - Floor 1', 'ACTIVE'),
+    ('A102', 'Computer Lab A102', 'Building A - Floor 1', 'ACTIVE'),
+    ('B201', 'Lecture Room B201', 'Building B - Floor 2', 'ACTIVE'),
+    ('B202', 'Lecture Room B202', 'Building B - Floor 2', 'MAINTENANCE'),
     ('C301', 'Study Room C301', 'Building C - Floor 3', 'ACTIVE'),
     ('C302', 'Study Room C302', 'Building C - Floor 3', 'ACTIVE')
-ON CONFLICT (room_code) DO NOTHING;
+ON CONFLICT (room_code)
+DO UPDATE SET
+    name = EXCLUDED.name,
+    location = EXCLUDED.location,
+    status = EXCLUDED.status;
 
 -- Fixed demonstration date: select 2026-10-16 in the UI to see these bookings.
 -- Resolve identity IDs by natural keys instead of assuming IDs start at 1.

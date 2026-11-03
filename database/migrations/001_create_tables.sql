@@ -62,7 +62,7 @@ CREATE TABLE resources (
     resource_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
 	room_id BIGINT NOT NULL,
 	resource_name VARCHAR(20) NOT NULL,
-	resource_type VARCHAR(20),
+	resource_type VARCHAR(20) NOT NULL,
 	quantity int,
 	status VARCHAR (10),
 	CONSTRAINT fk_resource_room FOREIGN KEY (room_id) REFERENCES rooms(room_id)

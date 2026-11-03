@@ -1,4 +1,3 @@
--- Apply once, after migration 005. SQL is managed manually in pgAdmin.
 BEGIN;
 SET LOCAL lock_timeout = '10s';
 
