@@ -21,13 +21,9 @@ CREATE TABLE role_permissions (
 
     PRIMARY KEY (role_id, permission_id),
 
-    CONSTRAINT fk_role_permissions_role
-        FOREIGN KEY (role_id)
-        REFERENCES roles(role_id),
+    CONSTRAINT fk_role_permissions_role FOREIGN KEY (role_id) REFERENCES roles(role_id),
 
-    CONSTRAINT fk_role_permissions_permission
-        FOREIGN KEY (permission_id)
-        REFERENCES permissions(permission_id)
+    CONSTRAINT fk_role_permissions_permission FOREIGN KEY (permission_id) REFERENCES permissions(permission_id)
 );
 INSERT INTO roles (role_name)
 VALUES
