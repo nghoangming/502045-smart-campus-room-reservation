@@ -1,3 +1,11 @@
+# Release candidate 08/11/2026
+
+Resources: cố định theo phòng, một dòng cho mỗi nhóm thiết bị; seed ở 004, FK incident/resource cùng phòng ở **016**. Xem mục resources trong [RELEASE_RC.md](RELEASE_RC.md). Bộ SQL hiện là **001–016**.
+
+Luồng giữ ghế đã được chấp thuận: [SEAT_HOLDS.md](SEAT_HOLDS.md), migration **015**, hold 2 phút → CONFIRMED; chỉ thay DB, chưa tích hợp backend/UI.
+
+Xem [RELEASE_RC.md](RELEASE_RC.md) để biết trạng thái kiểm chứng, lỗi đã sửa và các quyết định Auth/RBAC cần xem xét; [DEMO_DB_SECURITY.md](DEMO_DB_SECURITY.md) là kịch bản demo và ERD. Bằng chứng lần chạy thực tế: [evidence/RESULT.txt](evidence/RESULT.txt). Các mô tả lịch sử bên dưới không thay thế cấu hình source hiện tại.
+
 # Nhiệm vụ tuần này: Reservation / ClassSession / SeatReservation
 
 Phần cập nhật này chỉ thay đổi file trong `database/`. Backend/frontend giữ nguyên. Những hướng dẫn kết nối ở phần tài liệu cũ bên dưới có thể khác cấu hình của nhánh develop vừa pull; chúng không phải kết quả cấu hình lại backend trong lần làm này.

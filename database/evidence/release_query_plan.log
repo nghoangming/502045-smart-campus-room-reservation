@@ -1,0 +1,126 @@
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.041..0.041 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.006..0.006 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 6.976 ms
+ Execution Time: 0.110 ms
+(13 rows)
+
+ROLLBACK
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.067..0.067 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.008..0.009 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 7.007 ms
+ Execution Time: 0.182 ms
+(13 rows)
+
+ROLLBACK
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.067..0.068 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.007..0.008 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 9.526 ms
+ Execution Time: 0.187 ms
+(13 rows)
+
+ROLLBACK
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.045..0.045 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.005..0.005 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 6.918 ms
+ Execution Time: 0.121 ms
+(13 rows)
+
+ROLLBACK
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.142..0.143 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.017..0.019 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 15.302 ms
+ Execution Time: 0.367 ms
+(13 rows)
+
+ROLLBACK
+BEGIN
+INSERT 0 10000
+ANALYZE
+                                                                                       QUERY PLAN                                                                                        
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Index Scan using idx_bookings_room_active_time on bookings  (cost=8.45..55.69 rows=25 width=58) (actual time=0.045..0.045 rows=0.00 loops=1)
+   Index Cond: ((room_id = (InitPlan 1).col1) AND (start_time < '2035-01-02 10:00:00+07'::timestamp with time zone) AND (end_time > '2035-01-02 09:00:00+07'::timestamp with time zone))
+   Index Searches: 1
+   Buffers: shared hit=13
+   InitPlan 1
+     ->  Index Scan using rooms_room_code_key on rooms  (cost=0.14..8.16 rows=1 width=8) (actual time=0.007..0.008 rows=1.00 loops=1)
+           Index Cond: ((room_code)::text = 'A101'::text)
+           Index Searches: 1
+           Buffers: shared hit=2
+ Planning:
+   Buffers: shared hit=150
+ Planning Time: 7.231 ms
+ Execution Time: 0.112 ms
+(13 rows)
+
+ROLLBACK

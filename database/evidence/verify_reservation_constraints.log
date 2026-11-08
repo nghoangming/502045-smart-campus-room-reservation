@@ -1,0 +1,32 @@
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:118: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+ROLLBACK
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:118: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+ROLLBACK
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:118: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+ROLLBACK
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:119: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+ROLLBACK
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:119: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+ROLLBACK
+BEGIN
+CREATE FUNCTION
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:119: NOTICE:  PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.
+DO
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_reservation_constraints.sql:155: NOTICE:  PASS: fixed-room seed, 1:N incidents, optional resource, cross-room INSERT/UPDATE blocked, installed quantity/group status preserved
+ROLLBACK

@@ -44,8 +44,8 @@ BEGIN
         VALUES ('__dbtest_user_2','DB test 2','__dbtest_2@example.test','not-a-login-hash') RETURNING user_id INTO second_user;
     INSERT INTO users(user_code,full_name,email,password_hash)
         VALUES ('__dbtest_user_3','DB test 3','__dbtest_3@example.test','not-a-login-hash') RETURNING user_id INTO third_user;
-    INSERT INTO rooms(room_code,name,status) VALUES ('__dbtest_room_1','DB test room 1','ACTIVE') RETURNING room_id INTO first_room;
-    INSERT INTO rooms(room_code,name,status) VALUES ('__dbtest_room_2','DB test room 2','ACTIVE') RETURNING room_id INTO second_room;
+    INSERT INTO rooms(room_code,name,status) VALUES ('A__dbtest_room_1','DB test room 1','ACTIVE') RETURNING room_id INTO first_room;
+    INSERT INTO rooms(room_code,name,status) VALUES ('A__dbtest_room_2','DB test room 2','ACTIVE') RETURNING room_id INTO second_room;
 
     booking_template := 'INSERT INTO bookings(user_id,room_id,start_time,end_time,status) VALUES (%s,%s,%L,%L,%L)';
     PERFORM pg_temp.expect_rejected(format(booking_template,-999,first_room,'2098-01-01 08:00+07','2098-01-01 10:00+07','PENDING'), '23503','fk_booking_user');
@@ -85,13 +85,14 @@ BEGIN
     PERFORM pg_temp.expect_rejected(format('INSERT INTO seats(room_id,seat_number,status) VALUES(%s,1,''AVAILABLE'')',first_room), '23505','uq_seats_room_number');
     PERFORM pg_temp.expect_rejected(format('INSERT INTO seats(room_id,seat_number,status) VALUES(%s,0,''AVAILABLE'')',first_room), '23514','chk_seats_number_positive');
 
+    UPDATE bookings SET status='CONFIRMED' WHERE booking_id=first_booking;
     selection_template := 'INSERT INTO seat_reservations(class_session_id,seat_id,user_id,room_id,status) VALUES(%s,%s,%s,%s,%L)';
     PERFORM pg_temp.expect_rejected(format(selection_template,first_session,first_seat,-999,first_room,'CONFIRMED'), '23503','fk_seat_reservations_user');
     PERFORM pg_temp.expect_rejected(format(selection_template,-999,first_seat,first_user,first_room,'CONFIRMED'), '23503','fk_seat_reservations_session_room');
     PERFORM pg_temp.expect_rejected(format(selection_template,first_session,-999,first_user,first_room,'CONFIRMED'), '23503','fk_seat_reservations_seat_room');
     PERFORM pg_temp.expect_rejected(format(selection_template,first_session,other_room_seat,first_user,first_room,'CONFIRMED'), '23503','fk_seat_reservations_seat_room');
     PERFORM pg_temp.expect_rejected(format(selection_template,first_session,other_room_seat,first_user,second_room,'CONFIRMED'), '23503','fk_seat_reservations_session_room');
-    PERFORM pg_temp.expect_rejected(format(selection_template,first_session,first_seat,first_user,first_room,'PENDING'), '23514','chk_seat_reservations_status');
+    PERFORM pg_temp.expect_rejected(format(selection_template,first_session,first_seat,first_user,first_room,'INVALID'), '23514','chk_seat_reservations_status');
 
     INSERT INTO seat_reservations(class_session_id,seat_id,user_id,room_id)
         VALUES(first_session,first_seat,first_user,first_room) RETURNING seat_reservation_id INTO first_selection;
@@ -115,6 +116,42 @@ BEGIN
     EXECUTE format(selection_template,first_session,first_seat,first_user,first_room,'CONFIRMED');
 
     RAISE NOTICE 'PASS: reservation status/FK/time/overlap, session consistency, seat uniqueness, room consistency, cancellation and rebooking.';
+END $$;
+
+-- Fixed room resources: one equipment group may have many incident reports.
+DO $$
+DECLARE first_room bigint; other_room bigint; actor bigint; equipment bigint; report bigint;
+BEGIN
+ SELECT room_id INTO STRICT first_room FROM rooms WHERE room_code='A101';
+ SELECT room_id INTO STRICT other_room FROM rooms WHERE room_code='B201';
+ SELECT user_id INTO STRICT actor FROM users WHERE user_code='student';
+ SELECT resource_id INTO STRICT equipment FROM resources
+ WHERE room_id=first_room AND resource_type='COMPUTER' AND resource_name='May tinh';
+ IF (SELECT quantity FROM resources WHERE resource_id=equipment)<>30 THEN
+   RAISE EXCEPTION 'TEST: expected seeded group of 30 computers'; END IF;
+ INSERT INTO incidents(room_id,resource_id,reported_by,description)
+ VALUES(first_room,equipment,actor,'Computer 12 does not start') RETURNING incident_id INTO report;
+ INSERT INTO incidents(room_id,resource_id,reported_by,description)
+ VALUES(first_room,equipment,actor,'Computer 15 keyboard broken');
+ INSERT INTO incidents(room_id,resource_id,reported_by,description)
+ VALUES(first_room,NULL,actor,'Room power outage');
+ IF (SELECT count(*) FROM incidents WHERE resource_id=equipment)<>2 THEN
+   RAISE EXCEPTION 'TEST: equipment must allow multiple incidents'; END IF;
+ IF NOT EXISTS(SELECT 1 FROM resources WHERE resource_id=equipment AND quantity=30 AND status='AVAILABLE') THEN
+   RAISE EXCEPTION 'TEST: individual incident changed installed inventory or group status'; END IF;
+ PERFORM pg_temp.expect_rejected(format(
+   'INSERT INTO incidents(room_id,resource_id,reported_by) VALUES(%s,%s,%s)',other_room,equipment,actor),
+   '23503','fk_incident_resource_room');
+ PERFORM pg_temp.expect_rejected(format(
+   'UPDATE incidents SET room_id=%s WHERE incident_id=%s',other_room,report),
+   '23503','fk_incident_resource_room');
+ PERFORM pg_temp.expect_rejected(format(
+   'UPDATE resources SET room_id=%s WHERE resource_id=%s',other_room,equipment),
+   '23503','fk_incident_resource_room');
+ PERFORM pg_temp.expect_rejected(format(
+   'UPDATE resources SET quantity=-1 WHERE resource_id=%s',equipment),
+   '23514','chk_resources_quantity');
+ RAISE NOTICE 'PASS: fixed-room seed, 1:N incidents, optional resource, cross-room INSERT/UPDATE blocked, installed quantity/group status preserved';
 END $$;
 
 ROLLBACK;
