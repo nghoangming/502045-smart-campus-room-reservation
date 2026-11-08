@@ -1,0 +1,24 @@
+BEGIN
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:92: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+DO
+ROLLBACK
+BEGIN
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:92: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+DO
+ROLLBACK
+BEGIN
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:113: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+ROLLBACK
+BEGIN
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:113: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+DO
+ROLLBACK
+BEGIN
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:113: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+DO
+ROLLBACK
+BEGIN
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_checkin_codes.sql:113: NOTICE:  PASS: role, reservation, rotation, QR, manual code, duplicate success, method/status, atomic attendance
+ROLLBACK

@@ -1,0 +1,42 @@
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+INSERT 0 1
+
+Code   : 0
+Output : BEGIN
+                                             hold_class_seat                                    
+         ---------------------------------------------------------------------------------------
+          (20,7,8,3,11,PENDING,"2026-11-08 18:18:44.884735+07","2026-11-08 18:20:44.932653+07")
+         (1 row)
+         
+          pg_sleep 
+         ----------
+          
+         (1 row)
+         
+         COMMIT
+
+Code   : 1
+Output : BEGIN
+         ERROR:  23505: duplicate key value violates unique constraint "uq_seat_reservations_active_seat"
+         DETAIL:  Key (class_session_id, seat_id)=(7, 8) already exists.
+         CONTEXT:  SQL statement "INSERT INTO seat_reservations(class_session_id,seat_id,user_id,room_id,status,hold_expires_at)
+          VALUES(p_session,p_seat,p_student,v_session.room_id,'PENDING',clock_timestamp()+interval '2 minutes')
+          RETURNING *"
+         PL/pgSQL function hold_class_seat(bigint,bigint,bigint) line 22 at SQL statement
+         SCHEMA NAME:  public
+         TABLE NAME:  seat_reservations
+         CONSTRAINT NAME:  uq_seat_reservations_active_seat
+         LOCATION:  _bt_check_unique, nbtinsert.c:673
+
+PASS: two concurrent connections, exactly one hold commits; loser receives SQLSTATE 23505; no double booking.
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1
+DELETE 1

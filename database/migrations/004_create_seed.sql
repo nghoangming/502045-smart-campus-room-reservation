@@ -27,6 +27,28 @@ DO UPDATE SET
     location = EXCLUDED.location,
     status = EXCLUDED.status;
 
+-- Fixed equipment groups per room; seats are managed separately in seats.
+-- Re-running this block preserves existing inventory quantities/status.
+INSERT INTO resources(room_id,resource_name,resource_type,quantity,status)
+SELECT r.room_id,d.resource_name,d.resource_type,d.quantity,'AVAILABLE'
+FROM (VALUES
+    ('A101','May tinh','COMPUTER',30),
+    ('A101','May chieu','PROJECTOR',1),
+    ('A102','May tinh','COMPUTER',30),
+    ('A102','May chieu','PROJECTOR',1),
+    ('B201','May chieu','PROJECTOR',1),
+    ('B201','Micro','MICROPHONE',2),
+    ('B202','May chieu','PROJECTOR',1),
+    ('B202','Micro','MICROPHONE',2),
+    ('C301','O cam dien','POWER_OUTLET',10),
+    ('C302','O cam dien','POWER_OUTLET',10)
+) AS d(room_code,resource_name,resource_type,quantity)
+JOIN rooms r ON r.room_code=d.room_code
+WHERE NOT EXISTS (
+    SELECT 1 FROM resources existing WHERE existing.room_id=r.room_id
+      AND existing.resource_name=d.resource_name AND existing.resource_type=d.resource_type
+);
+
 -- Fixed demonstration date: select 2026-10-16 in the UI to see these bookings.
 -- Resolve identity IDs by natural keys instead of assuming IDs start at 1.
 INSERT INTO bookings (user_id, room_id, start_time, end_time, status)

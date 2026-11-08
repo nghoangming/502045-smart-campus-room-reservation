@@ -1,12 +1,11 @@
+BEGIN;
 -- Resource constraints
 
 ALTER TABLE resources
     ALTER COLUMN quantity SET NOT NULL,
     ALTER COLUMN resource_type SET NOT NULL;
 
-ALTER TABLE resources
-    ADD CONSTRAINT chk_resources_quantity
-    CHECK (quantity >= 0);
+-- chk_resources_quantity already exists from migration 007.
 
 ALTER TABLE resources
     ADD CONSTRAINT chk_resources_status
@@ -20,3 +19,4 @@ CREATE INDEX idx_resources_room_id
 
 CREATE INDEX idx_resources_room_status
     ON resources (room_id, status);
+COMMIT;

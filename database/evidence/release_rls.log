@@ -1,0 +1,182 @@
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+DO
+psql:database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+RESET
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+DO
+RESET
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+DO
+RESET
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+RESET
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+DO
+RESET
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+RESET
+ROLLBACK
+BEGIN
+CREATE ROLE
+GRANT
+GRANT
+INSERT 0 2
+ set_config 
+------------
+ 3
+(1 row)
+
+ set_config 
+------------
+ STUDENT
+(1 row)
+
+SET
+DO
+ set_config | set_config 
+------------+------------
+            | 
+(1 row)
+
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/release_rls.sql:23: NOTICE:  PASS: non-owner/non-bypass RLS notification isolation and missing context
+RESET
+ROLLBACK

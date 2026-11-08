@@ -1,0 +1,1366 @@
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+ALTER TABLE
+COMMIT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+ALTER TABLE
+COMMIT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+ALTER TABLE
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+ALTER TABLE
+ALTER TABLE
+DROP INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE VIEW
+REVOKE
+REVOKE
+REVOKE
+COMMENT
+COMMIT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+ALTER TABLE
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+ALTER TABLE
+ALTER TABLE
+DROP INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE VIEW
+REVOKE
+REVOKE
+REVOKE
+COMMENT
+COMMIT
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+CREATE TABLE
+INSERT 0 3
+INSERT 0 16
+INSERT 0 8
+INSERT 0 6
+INSERT 0 4
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+INSERT 0 3
+INSERT 0 3
+INSERT 0 6
+INSERT 0 10
+INSERT 0 4
+BEGIN
+SET
+CREATE EXTENSION
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMENT
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+UPDATE 6
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+DO
+UPDATE 0
+UPDATE 0
+UPDATE 0
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+COMMIT
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+BEGIN
+SET
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE TABLE
+INSERT 0 9
+INSERT 0 9
+INSERT 0 5
+INSERT 0 4
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:109: NOTICE:  policy "absence_requests_select_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:137: NOTICE:  policy "absence_requests_insert_policy" for relation "absence_requests" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:173: NOTICE:  policy "absence_requests_review_policy" for relation "absence_requests" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:219: NOTICE:  policy "incidents_select_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:231: NOTICE:  policy "incidents_insert_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:243: NOTICE:  policy "incidents_update_policy" for relation "incidents" does not exist, skipping
+CREATE POLICY
+ALTER TABLE
+DROP POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:259: NOTICE:  policy "notifications_select_policy" for relation "notifications" does not exist, skipping
+CREATE POLICY
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:270: NOTICE:  policy "notifications_update_policy" for relation "notifications" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ALTER TABLE
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/migrations/011_rbac_data_access_mapping.sql:286: NOTICE:  policy "audit_logs_select_policy" for relation "audit_logs" does not exist, skipping
+DROP POLICY
+CREATE POLICY
+ schemaname |    tablename     |           policyname           | permissive |  roles   |  cmd   |                                                                                                                   qual                                                                                                                   |                                                                                                          with_check                                                                                                           
+------------+------------------+--------------------------------+------------+----------+--------+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ public     | absence_requests | absence_requests_insert_policy | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((user_id = app_current_user_id()) AND ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                                                          +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'STUDENT'::text) AND (EXISTS ( SELECT 1+
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |                                                                                                                                                                                                                                          |   WHERE (cs.class_session_id = absence_requests.class_session_id))))))
+ public     | absence_requests | absence_requests_review_policy | PERMISSIVE | {public} | UPDATE | ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                                     +| ((((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1                          +
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +|    FROM (class_sessions cs                                                                                                                                                                                                   +
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +|      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                    +
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))
+ public     | absence_requests | absence_requests_select_policy | PERMISSIVE | {public} | SELECT | ((user_id = app_current_user_id()) OR (((request_type)::text = 'TEACHER'::text) AND (app_current_role() = 'ADMIN'::text)) OR (((request_type)::text = 'STUDENT'::text) AND (app_current_role() = 'TEACHER'::text) AND (EXISTS ( SELECT 1+| 
+            |                  |                                |            |          |        |    FROM (class_sessions cs                                                                                                                                                                                                              +| 
+            |                  |                                |            |          |        |      JOIN bookings b ON ((b.booking_id = cs.booking_id)))                                                                                                                                                                               +| 
+            |                  |                                |            |          |        |   WHERE ((cs.class_session_id = absence_requests.class_session_id) AND (b.user_id = app_current_user_id()))))))                                                                                                                          | 
+ public     | audit_logs       | audit_logs_select_policy       | PERMISSIVE | {public} | SELECT | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | 
+ public     | incidents        | incidents_insert_policy        | PERMISSIVE | {public} | INSERT |                                                                                                                                                                                                                                          | ((reported_by = app_current_user_id()) AND (app_current_role() = ANY (ARRAY['ADMIN'::text, 'TEACHER'::text, 'STUDENT'::text])))
+ public     | incidents        | incidents_select_policy        | PERMISSIVE | {public} | SELECT | ((app_current_role() = 'ADMIN'::text) OR (reported_by = app_current_user_id()))                                                                                                                                                          | 
+ public     | incidents        | incidents_update_policy        | PERMISSIVE | {public} | UPDATE | (app_current_role() = 'ADMIN'::text)                                                                                                                                                                                                     | (app_current_role() = 'ADMIN'::text)
+ public     | notifications    | notifications_select_policy    | PERMISSIVE | {public} | SELECT | (user_id = app_current_user_id())                                                                                                                                                                                                        | 
+ public     | notifications    | notifications_update_policy    | PERMISSIVE | {public} | UPDATE | (user_id = app_current_user_id())                                                                                                                                                                                                        | (user_id = app_current_user_id())
+(9 rows)
+
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+UPDATE 0
+DO
+ALTER TABLE
+CREATE INDEX
+CREATE TABLE
+CREATE INDEX
+ALTER TABLE
+CREATE FUNCTION
+CREATE FUNCTION
+REVOKE
+REVOKE
+REVOKE
+COMMIT
+BEGIN
+SET
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+UPDATE 0
+ALTER TABLE
+CREATE FUNCTION
+CREATE TRIGGER
+ALTER TABLE
+COMMIT
+BEGIN
+SET
+LOCK TABLE
+ALTER TABLE
+ALTER TABLE
+DROP INDEX
+DROP INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE INDEX
+CREATE FUNCTION
+CREATE TRIGGER
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE FUNCTION
+CREATE VIEW
+REVOKE
+REVOKE
+REVOKE
+COMMENT
+COMMIT
+BEGIN
+SET
+ALTER TABLE
+ALTER TABLE
+CREATE INDEX
+COMMENT
+COMMENT
+COMMENT
+COMMIT

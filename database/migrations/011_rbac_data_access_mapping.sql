@@ -1,3 +1,15 @@
+BEGIN;
+SET LOCAL lock_timeout = '10s';
+-- Transaction-local context must be set by a trusted authenticated backend.
+-- Missing context fails closed; these helpers do not authenticate a user.
+CREATE OR REPLACE FUNCTION app_current_user_id() RETURNS BIGINT
+LANGUAGE sql STABLE AS $$
+ SELECT nullif(current_setting('app.user_id', true), '')::bigint
+$$;
+CREATE OR REPLACE FUNCTION app_current_role() RETURNS TEXT
+LANGUAGE sql STABLE AS $$
+ SELECT nullif(current_setting('app.role', true), '')
+$$;
 --1.Bổ sung bảng absence_requests để quản lý các yêu cầu vắng mặt của sinh viên và giáo viên
 CREATE TABLE absence_requests (
     absence_request_id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
@@ -32,7 +44,7 @@ VALUES
     ('CREATE_OWN_ABSENCE_REQUEST'),
     ('VIEW_OWN_ABSENCE_REQUESTS'),    
     ('REVIEW_STUDENT_ABSENCE'),
-    ('REVIEW_TEACHER_ABSENCE'),
+    ('REVIEW_TEACHER_ABSENCE')
 ON CONFLICT (permission_name) DO NOTHING;
 
 --Gán cho ADMIN
@@ -49,10 +61,10 @@ AND p.permission_name IN (
     'VIEW_NOTIFICATIONS',
     'MANAGE_NOTIFICATIONS',
     'VIEW_AUDIT_LOGS',
-    'MANAGE_RBAC'
+    'MANAGE_RBAC',
     'CREATE_OWN_ABSENCE_REQUEST',
     'VIEW_OWN_ABSENCE_REQUESTS',
-    'REVIEW_TEACHER_ABSENCE',
+    'REVIEW_TEACHER_ABSENCE'
 )
 ON CONFLICT DO NOTHING;
 
@@ -112,10 +124,10 @@ USING (
         AND app_current_role() = 'TEACHER'
         AND EXISTS (
             SELECT 1
-            FROM class_sessions cs
+            FROM class_sessions cs JOIN bookings b ON b.booking_id = cs.booking_id
             WHERE cs.class_session_id =
                   absence_requests.class_session_id
-              AND cs.teacher_id = app_current_user_id()
+              AND b.user_id = app_current_user_id()
         )
     )
 );
@@ -136,10 +148,10 @@ WITH CHECK (
             AND app_current_role() = 'TEACHER'
             AND EXISTS (
                 SELECT 1
-                FROM class_sessions cs
+                FROM class_sessions cs JOIN bookings b ON b.booking_id = cs.booking_id
                 WHERE cs.class_session_id =
                       absence_requests.class_session_id
-                  AND cs.teacher_id = app_current_user_id()
+                  AND b.user_id = app_current_user_id()
             )
         )
 
@@ -148,7 +160,7 @@ WITH CHECK (
             AND app_current_role() = 'STUDENT'
             AND EXISTS (
                 SELECT 1
-                FROM class_sessions cs
+                FROM class_sessions cs JOIN bookings b ON b.booking_id = cs.booking_id
                 WHERE cs.class_session_id =
                       absence_requests.class_session_id
             )
@@ -174,10 +186,10 @@ USING (
         AND app_current_role() = 'TEACHER'
         AND EXISTS (
             SELECT 1
-            FROM class_sessions cs
+            FROM class_sessions cs JOIN bookings b ON b.booking_id = cs.booking_id
             WHERE cs.class_session_id =
                   absence_requests.class_session_id
-              AND cs.teacher_id = app_current_user_id()
+              AND b.user_id = app_current_user_id()
         )
     )
 )
@@ -192,10 +204,10 @@ WITH CHECK (
         AND app_current_role() = 'TEACHER'
         AND EXISTS (
             SELECT 1
-            FROM class_sessions cs
+            FROM class_sessions cs JOIN bookings b ON b.booking_id = cs.booking_id
             WHERE cs.class_session_id =
                   absence_requests.class_session_id
-              AND cs.teacher_id = app_current_user_id()
+              AND b.user_id = app_current_user_id()
         )
     )
 );
@@ -298,3 +310,4 @@ WHERE tablename IN (
     'audit_logs'
 )
 ORDER BY tablename, policyname;
+COMMIT;

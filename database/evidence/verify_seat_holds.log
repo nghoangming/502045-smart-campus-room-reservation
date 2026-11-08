@@ -1,0 +1,12 @@
+BEGIN
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_seat_holds.sql:64: NOTICE:  PASS: approval, 2-minute hold, ownership, retry, pending/confirmed exclusion, expiry, reclaim, view and physical seat independence
+ROLLBACK
+BEGIN
+DO
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_seat_holds.sql:64: NOTICE:  PASS: approval, 2-minute hold, ownership, retry, pending/confirmed exclusion, expiry, reclaim, view and physical seat independence
+ROLLBACK
+BEGIN
+psql:D:/CNPM_CK/502045-smart-campus-room-reservation/database/tests/verify_seat_holds.sql:64: NOTICE:  PASS: approval, 2-minute hold, ownership, retry, pending/confirmed exclusion, expiry, reclaim, view and physical seat independence
+DO
+ROLLBACK
