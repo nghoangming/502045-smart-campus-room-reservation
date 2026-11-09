@@ -1,13 +1,51 @@
 name: CI
+
 on:
   push:
-    branches: [main, develop]
   pull_request:
-    branches: [main, develop]
 
 jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: smart_campus
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d smart_campus"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: maven
+      - name: Apply database migrations
+        working-directory: backend
+        env:
+          PGPASSWORD: postgres
+        run: |
+          for migration in ../migrations/00*.sql; do
+            psql --host localhost --username postgres --dbname smart_campus --file "$migration"
+          done
+      - name: Run backend tests
+        working-directory: backend
+        env:
+          DB_URL: jdbc:postgresql://localhost:5432/smart_campus
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          JWT_SECRET: smart-campus-test-secret-with-at-least-32-characters
+        run: ./mvnw --batch-mode test
+
   frontend:
-    if: ${{ hashFiles('frontend/package.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -16,102 +54,21 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-      - run: npm ci
-      - run: npm run lint --if-present
-      - run: npm run build --if-present
-      - run: npm test --if-present
-
-  backend:
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 25 # khớp java.version trong backend/pom.xml
-          cache: maven
-      - run: mvn -B compile
-      - run: mvn -B test
-
-  # Test API: bật backend thật rồi chạy Playwright project "api"
-  api-tests:
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 25
-          cache: maven
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: tests/package-lock.json
-      - name: Build và chạy backend
-        working-directory: backend
-        run: |
-          mvn -B -DskipTests package
-          nohup java -jar target/*.jar > ../backend.log 2>&1 &
-      - name: Chờ backend sẵn sàng
-        run: |
-          for i in $(seq 1 60); do
-            if curl -sf http://localhost:8080/api/v1/health > /dev/null; then
-              echo "Backend OK"; exit 0
-            fi
-            sleep 2
-          done
-          echo "Backend không khởi động được"; cat backend.log; exit 1
-      - name: Chạy API test
-        working-directory: tests
-        env:
-          API_URL: http://localhost:8080
-          SKIP_WEB_SERVER: "true"
-        run: |
-          npm ci
-          npx playwright test --project=api
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: api-test-report
-          path: |
-            tests/playwright-report
-            backend.log
-
-  # Test E2E: Playwright tự bật frontend (webServer trong playwright.config.ts)
-  e2e-tests:
-    if: ${{ hashFiles('frontend/package.json') != '' }}
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
+          node-version: 24
           cache: npm
           cache-dependency-path: |
             frontend/package-lock.json
             tests/package-lock.json
-      - name: Cài frontend
-        working-directory: frontend
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build -- --webpack
+      - name: Install test dependencies
+        working-directory: tests
         run: npm ci
-      - name: Cài tests và trình duyệt
+      - name: Install Playwright browser
         working-directory: tests
-        run: |
-          npm ci
-          npx playwright install --with-deps chromium
-      - name: Chạy E2E test (sanity + login + schedule)
+        run: npx playwright install --with-deps chromium
+      - name: Run workspace smoke tests
         working-directory: tests
-        run: npx playwright test --project=e2e
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: e2e-test-report
-          path: tests/playwright-report
+        run: npm run test:workspace
