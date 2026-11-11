@@ -55,7 +55,7 @@ INSERT INTO bookings (user_id, room_id, start_time, end_time, status)
 SELECT users.user_id, rooms.room_id, demo.start_time, demo.end_time, demo.status
 FROM (VALUES
     ('teacher', 'A101', TIMESTAMPTZ '2026-10-16 08:00:00+07', TIMESTAMPTZ '2026-10-16 10:00:00+07', 'CONFIRMED'),
-    ('teacher', 'A102', TIMESTAMPTZ '2026-10-16 09:00:00+07', TIMESTAMPTZ '2026-10-16 11:00:00+07', 'CONFIRMED'),
+    ('teacher', 'A102', TIMESTAMPTZ '2026-10-16 10:00:00+07', TIMESTAMPTZ '2026-10-16 12:00:00+07', 'CONFIRMED'),
     ('teacher', 'B201', TIMESTAMPTZ '2026-10-16 13:00:00+07', TIMESTAMPTZ '2026-10-16 15:00:00+07', 'CONFIRMED'),
     ('student', 'C301', TIMESTAMPTZ '2026-10-16 08:00:00+07', TIMESTAMPTZ '2026-10-16 10:00:00+07', 'CANCELLED')
 ) AS demo(user_code, room_code, start_time, end_time, status)
