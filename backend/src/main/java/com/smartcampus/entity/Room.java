@@ -28,6 +28,9 @@ public class Room {
     @Column(nullable = false, length = 20)
     private String status;
 
+    @Column(nullable = false, length = 20)
+    private String type;
+
     protected Room() {
     }
 
@@ -36,4 +39,5 @@ public class Room {
     public String getName() { return name; }
     public String getLocation() { return location; }
     public String getStatus() { return status; }
+    public String getType() { return type; }
 }

@@ -14,6 +14,7 @@ public interface SeatReservationRepository extends JpaRepository<SeatReservation
     boolean existsByClassSessionIdAndSeatIdAndStatus(Long classSessionId, Long seatId, String status);
 
     boolean existsByClassSessionIdAndUserIdAndStatus(Long classSessionId, Long userId, String status);
+    List<SeatReservation> findByUserIdAndStatus(Long userId, String status);
 
     @Query("select r.seatId from SeatReservation r "
             + "where r.classSessionId = :classSessionId and r.status = 'CONFIRMED'")

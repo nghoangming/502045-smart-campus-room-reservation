@@ -27,6 +27,13 @@ UPDATE users SET faculty_code=CASE upper(btrim(faculty))
 UPDATE users SET faculty_code='A'
  WHERE faculty_code IS NULL AND user_code IN ('teacher','student')
  AND email IN ('teacher@smartcampus.test','student@smartcampus.test');
+-- Older invitations stored the display name but omitted the canonical faculty key.
+UPDATE users u SET faculty_code=f.faculty_code, faculty=f.faculty_name,
+ updated_at=CURRENT_TIMESTAMP
+FROM faculties f
+WHERE u.faculty_code IS NULL
+ AND (u.user_code ~ '^S[A-P][0-9]{7}$' OR u.user_code ~ '^T[A-P][0-9]{6}$')
+ AND substring(u.user_code FROM 2 FOR 1)=f.faculty_code;
 
 -- Snapshot the teaching faculty so later profile changes do not move old timetables.
 ALTER TABLE class_sessions ADD COLUMN faculty_code CHAR(1) REFERENCES faculties(faculty_code);

@@ -34,23 +34,27 @@ public class ClassSession {
     @Column(name = "end_time", nullable = false)
     private OffsetDateTime endTime;
 
+    @Column(name = "session_kind", nullable = false, length = 12)
+    private String sessionKind = "REGULAR";
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 
     protected ClassSession() { }
 
-    private ClassSession(Booking booking, String courseCode, String title) {
+    private ClassSession(Booking booking, String courseCode, String title, boolean makeup) {
         this.bookingId = booking.getId();
         this.roomId = booking.getRoomId();
         this.startTime = booking.getStartTime();
         this.endTime = booking.getEndTime();
         this.courseCode = courseCode;
         this.title = title;
+        this.sessionKind = makeup ? "MAKEUP" : "REGULAR";
         this.createdAt = OffsetDateTime.now();
     }
 
-    public static ClassSession create(Booking booking, String courseCode, String title) {
-        return new ClassSession(booking, courseCode, title);
+    public static ClassSession create(Booking booking, String courseCode, String title, boolean makeup) {
+        return new ClassSession(booking, courseCode, title, makeup);
     }
 
     public Long getId() { return id; }

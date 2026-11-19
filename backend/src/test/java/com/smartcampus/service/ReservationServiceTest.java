@@ -15,6 +15,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -41,6 +42,8 @@ class ReservationServiceTest {
 
     @Mock
     private SeatReservationRepository seatReservationRepository;
+    @Mock
+    private JdbcTemplate jdbc;
 
     @Mock
     private Room room;
@@ -51,18 +54,20 @@ class ReservationServiceTest {
     @BeforeEach
     void setUp() {
         reservationService = new ReservationService(bookingRepository, roomRepository,
-                classSessionRepository, seatReservationRepository);
+                classSessionRepository, seatReservationRepository, jdbc);
         request = new ReservationRequest(
                 10L,
                 null,
-                OffsetDateTime.parse("2026-10-25T08:00:00+07:00"),
-                OffsetDateTime.parse("2026-10-25T10:00:00+07:00"),
+                OffsetDateTime.now().plusDays(2),
+                OffsetDateTime.now().plusDays(2).plusHours(2),
                 null);
 
     }
 
     private void roomWithoutConflicts() {
         when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(room.getStatus()).thenReturn("ACTIVE");
+        when(room.getType()).thenReturn("LAB");
         when(bookingRepository.findOverlappingBookings(any(), any(), any()))
                 .thenReturn(List.of());
     }
@@ -76,7 +81,7 @@ class ReservationServiceTest {
                 .thenThrow(new DataIntegrityViolationException("insert failed", databaseError));
 
         assertThrows(ReservationConflictException.class,
-                () -> reservationService.create(request));
+                () -> reservationService.create(request, "CLASSROOM", 1L));
     }
 
     @Test
@@ -88,24 +93,40 @@ class ReservationServiceTest {
 
         DataIntegrityViolationException thrown = assertThrows(
                 DataIntegrityViolationException.class,
-                () -> reservationService.create(request));
+                () -> reservationService.create(request, "CLASSROOM", 1L));
 
         assertSame(integrityError, thrown);
     }
 
     @Test
-    void cancellingBookingCancelsActiveSessionSeats() {
+    void rejectsInactiveRoom() {
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(room.getStatus()).thenReturn("MAINTENANCE");
+        assertThrows(IllegalArgumentException.class,
+                () -> reservationService.create(request, "CLASSROOM", 1L));
+    }
+
+    @Test
+    void rejectsWrongRoomType() {
+        when(roomRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(room));
+        when(room.getStatus()).thenReturn("ACTIVE");
+        when(room.getType()).thenReturn("SELF_STUDY");
+        assertThrows(IllegalArgumentException.class,
+                () -> reservationService.create(request, "CLASSROOM", 1L));
+    }
+
+    @Test
+    void cancellationUsesDatabaseLifecycleFunction() {
         Booking booking = org.mockito.Mockito.mock(Booking.class);
-        ClassSession session = org.mockito.Mockito.mock(ClassSession.class);
-        when(bookingRepository.findByIdForUpdate(10L)).thenReturn(Optional.of(booking));
+        when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(booking.getRoomId()).thenReturn(10L);
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(room.getType()).thenReturn("LAB");
         when(booking.getStatus()).thenReturn("CONFIRMED");
-        when(classSessionRepository.findByBookingId(10L)).thenReturn(Optional.of(session));
-        when(session.getId()).thenReturn(20L);
-        when(bookingRepository.save(booking)).thenReturn(booking);
-
-        reservationService.cancel(10L);
-
-        verify(booking).cancel();
-        verify(seatReservationRepository).cancelActiveForSession(20L);
+        reservationService.cancel(10L, "CLASSROOM", 7L);
+        verify(jdbc).queryForObject(org.mockito.ArgumentMatchers.contains("cancel_booking"),
+                org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<com.smartcampus.dto.ReservationResponse>>any(),
+                org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(7L),
+                org.mockito.ArgumentMatchers.isNull());
     }
 }

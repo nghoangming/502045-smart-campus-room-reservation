@@ -1,5 +1,6 @@
 package com.smartcampus.controller;
 
+import com.smartcampus.auth.AccessService;
 import com.smartcampus.dto.ReservationRequest;
 import com.smartcampus.dto.ReservationResponse;
 import com.smartcampus.service.ReservationService;
@@ -24,9 +25,11 @@ import java.util.List;
 public class StudyRoomReservationController {
 
     private final ReservationService reservationService;
+    private final AccessService access;
 
-    public StudyRoomReservationController(ReservationService reservationService) {
+    public StudyRoomReservationController(ReservationService reservationService, AccessService access) {
         this.reservationService = reservationService;
+        this.access = access;
     }
 
     /**
@@ -35,31 +38,55 @@ public class StudyRoomReservationController {
      */
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public ReservationResponse create(@Valid @RequestBody ReservationRequest request) {
-        return reservationService.create(request);
+    public ReservationResponse create(@Valid @RequestBody ReservationRequest request,
+                                      @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "STUDENT");
+        return reservationService.create(request, "STUDY", userId);
     }
 
     /**
      * List study room reservations, optionally filtered by {@code status} query param.
      */
     @GetMapping
-    public List<ReservationResponse> list(@RequestParam(required = false) String status) {
-        return reservationService.list(status);
+    public List<ReservationResponse> list(@RequestParam(required = false) String status,
+                                          @RequestAttribute("authenticatedUserId") Long userId) {
+        List<ReservationResponse> bookings = reservationService.list(status, "STUDY");
+        if (access.hasRole(userId, "ADMIN")) return bookings;
+        return bookings.stream().filter(booking -> userId.equals(booking.userId())).toList();
     }
 
     /**
      * Get detail of a single study room reservation.
      */
     @GetMapping("/{id}")
-    public ReservationResponse getById(@PathVariable Long id) {
-        return reservationService.getById(id);
+    public ReservationResponse getById(@PathVariable Long id,
+                                       @RequestAttribute("authenticatedUserId") Long userId) {
+        ReservationResponse booking = reservationService.getById(id, "STUDY");
+        access.requireOwnerOrAdmin(userId, booking.userId());
+        return booking;
     }
 
     /**
      * Cancel a study room reservation.
      */
     @PatchMapping("/{id}/cancel")
-    public ReservationResponse cancel(@PathVariable Long id) {
-        return reservationService.cancel(id);
+    public ReservationResponse cancel(@PathVariable Long id,
+                                      @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireOwnerOrAdmin(userId, reservationService.getById(id, "STUDY").userId());
+        return reservationService.cancel(id, "STUDY", userId);
+    }
+
+    @PatchMapping("/{id}/approve")
+    public ReservationResponse approve(@PathVariable Long id,
+                                       @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "ADMIN");
+        return reservationService.decide(id, "STUDY", true, userId);
+    }
+
+    @PatchMapping("/{id}/reject")
+    public ReservationResponse reject(@PathVariable Long id,
+                                      @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "ADMIN");
+        return reservationService.decide(id, "STUDY", false, userId);
     }
 }
