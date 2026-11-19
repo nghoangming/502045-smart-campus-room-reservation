@@ -10,20 +10,17 @@ import com.smartcampus.repository.BookingRepository;
 import com.smartcampus.repository.ClassSessionRepository;
 import com.smartcampus.repository.SeatRepository;
 import com.smartcampus.repository.SeatReservationRepository;
+import java.time.OffsetDateTime;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.postgresql.util.PSQLException;
-import org.postgresql.util.ServerErrorMessage;
-import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.jdbc.core.JdbcTemplate;
 
-import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -33,75 +30,58 @@ class SeatReservationServiceTest {
     @Mock BookingRepository bookings;
     @Mock SeatRepository seats;
     @Mock SeatReservationRepository reservations;
+    @Mock JdbcTemplate jdbc;
     @Mock ClassSession session;
     @Mock Booking booking;
     @Mock Seat seat;
+    @Mock SeatReservation reservation;
 
     private SeatReservationService service;
     private final SeatReservationRequest request = new SeatReservationRequest(20L, 30L);
 
     @BeforeEach
     void setUp() {
-        service = new SeatReservationService(classSessions, bookings, seats, reservations);
+        service = new SeatReservationService(classSessions, bookings, seats, reservations, jdbc);
     }
 
     private void activeSessionAndSeat() {
         when(classSessions.findById(20L)).thenReturn(Optional.of(session));
+        when(jdbc.queryForObject("SELECT calendar_status FROM class_session_calendar WHERE class_session_id=?",
+                String.class, 20L)).thenReturn("SCHEDULED");
         when(session.getBookingId()).thenReturn(10L);
         when(session.getRoomId()).thenReturn(40L);
         when(session.getId()).thenReturn(20L);
-        when(bookings.findByIdForUpdate(10L)).thenReturn(Optional.of(booking));
+        when(bookings.findById(10L)).thenReturn(Optional.of(booking));
         when(booking.getStatus()).thenReturn("CONFIRMED");
-        when(seats.findByIdForUpdate(30L)).thenReturn(Optional.of(seat));
+        when(booking.getEndTime()).thenReturn(OffsetDateTime.now().plusDays(1));
+        when(seats.findById(30L)).thenReturn(Optional.of(seat));
         when(seat.getRoomId()).thenReturn(40L);
         when(seat.getStatus()).thenReturn("AVAILABLE");
         when(seat.getId()).thenReturn(30L);
     }
 
     @Test
-    void rejectsSeatAlreadyReservedInSession() {
-        activeSessionAndSeat();
-        when(reservations.existsByClassSessionIdAndSeatIdAndStatus(20L, 30L, "CONFIRMED"))
-                .thenReturn(true);
-
-        assertThrows(SeatConflictException.class, () -> service.create(request));
-        verify(reservations, never()).saveAndFlush(any());
-    }
-
-    @Test
-    void rejectsSecondSeatForSameUserInSession() {
+    void rejectsSecondSeatOnlyWithinSameSession() {
         activeSessionAndSeat();
         when(reservations.existsByClassSessionIdAndUserIdAndStatus(20L, 1L, "CONFIRMED"))
                 .thenReturn(true);
-
-        assertThrows(SeatConflictException.class, () -> service.create(request));
-        verify(reservations, never()).saveAndFlush(any());
+        assertThrows(SeatConflictException.class, () -> service.create(request, 1L));
     }
 
     @Test
-    void translatesDatabaseUniqueRaceForSeatAndUser() {
+    void confirmsHoldThroughDatabaseFunctions() {
         activeSessionAndSeat();
-        for (String constraint : new String[] {
-                "uq_seat_reservations_active_seat", "uq_seat_reservations_active_user" }) {
-            ServerErrorMessage detail = org.mockito.Mockito.mock(ServerErrorMessage.class);
-            when(detail.getSQLState()).thenReturn("23505");
-            when(detail.getConstraint()).thenReturn(constraint);
-            DataIntegrityViolationException conflict = new DataIntegrityViolationException(
-                    "duplicate", new PSQLException(detail));
-            when(reservations.saveAndFlush(any(SeatReservation.class)))
-                    .thenThrow(conflict);
+        when(jdbc.queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
+                Long.class, 20L, 30L, 1L)).thenReturn(50L);
+        when(jdbc.queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
+                Long.class, 50L, 1L)).thenReturn(50L);
+        when(reservations.findById(50L)).thenReturn(Optional.of(reservation));
+        when(reservation.getStatus()).thenReturn("CONFIRMED");
 
-            assertThrows(SeatConflictException.class, () -> service.create(request));
-        }
-    }
-
-    @Test
-    void leavesOtherIntegrityFailuresUnchanged() {
-        activeSessionAndSeat();
-        DataIntegrityViolationException failure = new DataIntegrityViolationException("foreign key");
-        when(reservations.saveAndFlush(any(SeatReservation.class))).thenThrow(failure);
-
-        assertSame(failure, assertThrows(DataIntegrityViolationException.class,
-                () -> service.create(request)));
+        assertEquals("CONFIRMED", service.create(request, 1L).status());
+        verify(jdbc).queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
+                Long.class, 20L, 30L, 1L);
+        verify(jdbc).queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
+                Long.class, 50L, 1L);
     }
 }

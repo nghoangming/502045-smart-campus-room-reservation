@@ -33,10 +33,20 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
             @Param("startTime") OffsetDateTime startTime,
             @Param("endTime") OffsetDateTime endTime);
 
+    @Query("""
+            select b from Booking b where b.status in ('PENDING','CONFIRMED')
+              and b.startTime < :endTime and b.endTime > :startTime
+            """)
+    List<Booking> findActiveOverlapping(@Param("startTime") OffsetDateTime startTime,
+                                        @Param("endTime") OffsetDateTime endTime);
+
     /**
      * List all bookings, ordered by creation time descending.
      */
     List<Booking> findAllByOrderByCreatedAtDesc();
+
+    List<Booking> findByRoomIdInOrderByCreatedAtDesc(List<Long> roomIds);
+
 
     /**
      * List bookings filtered by status.

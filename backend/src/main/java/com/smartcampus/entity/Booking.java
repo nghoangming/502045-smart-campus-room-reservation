@@ -59,6 +59,9 @@ public class Booking {
         this.status = "CANCELLED";
     }
 
+    public void approve() { this.status = "CONFIRMED"; }
+    public void reject() { this.status = "REJECTED"; }
+
     // --- Getters ---
     public Long getId() { return id; }
     public Long getUserId() { return userId; }

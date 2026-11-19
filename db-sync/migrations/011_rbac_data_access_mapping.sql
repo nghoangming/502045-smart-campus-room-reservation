@@ -495,7 +495,8 @@ REVOKE ALL ON FUNCTION request_student_absence(BIGINT,BIGINT,TEXT) FROM PUBLIC;
 REVOKE ALL ON FUNCTION review_student_absence(BIGINT,BIGINT,BOOLEAN,TEXT) FROM PUBLIC;
 
 -- Review updates the request before releasing seats, so this trigger can identify recipients.
-CREATE FUNCTION notify_teacher_absence_approved() RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE FUNCTION notify_teacher_absence_approved() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
 DECLARE v_booking_id BIGINT;
 BEGIN
   SELECT booking_id INTO STRICT v_booking_id FROM class_sessions
@@ -517,6 +518,31 @@ CREATE TRIGGER trg_notify_teacher_absence_approved
 AFTER UPDATE OF status ON absence_requests
 FOR EACH ROW WHEN (NEW.request_type='TEACHER' AND OLD.status='PENDING' AND NEW.status='APPROVED')
 EXECUTE FUNCTION notify_teacher_absence_approved();
+
+CREATE FUNCTION notify_student_absence() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE v_booking bookings;
+BEGIN
+ SELECT b.* INTO STRICT v_booking FROM class_sessions cs
+ JOIN bookings b USING(booking_id) WHERE cs.class_session_id=NEW.class_session_id;
+ IF TG_OP='INSERT' AND NEW.request_type='STUDENT' THEN
+   INSERT INTO notifications(user_id,title,message,notification_type,related_booking_id)
+   VALUES (v_booking.user_id,'Đơn báo vắng mới',
+     'Một sinh viên đã gửi đơn báo vắng cho buổi học của bạn.', 'ABSENCE',v_booking.booking_id);
+ ELSIF TG_OP='UPDATE' AND NEW.request_type='STUDENT'
+       AND OLD.status='PENDING' AND NEW.status IN ('APPROVED','REJECTED') THEN
+   INSERT INTO notifications(user_id,title,message,notification_type,related_booking_id)
+   VALUES (NEW.user_id,'Kết quả đơn báo vắng',
+     'Đơn báo vắng của bạn đã chuyển sang trạng thái ' || NEW.status || '.',
+     'ABSENCE',v_booking.booking_id);
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER trg_notify_student_absence_insert AFTER INSERT ON absence_requests
+FOR EACH ROW WHEN (NEW.request_type='STUDENT') EXECUTE FUNCTION notify_student_absence();
+CREATE TRIGGER trg_notify_student_absence_review AFTER UPDATE OF status ON absence_requests
+FOR EACH ROW WHEN (NEW.request_type='STUDENT' AND OLD.status='PENDING'
+ AND NEW.status IN ('APPROVED','REJECTED')) EXECUTE FUNCTION notify_student_absence();
 
 CREATE FUNCTION guard_teacher_incident() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN

@@ -1,360 +1,3628 @@
-openapi: 3.1.0
+openapi: "3.1.0"
 info:
-  title: Smart Campus Room Reservation API
-  version: 1.0.0
-  description: API contract for Smart Campus. Health, rooms, schedule and availability are implemented; remaining operations are planned contracts.
+  title: "Smart Campus API"
+  version: "2.0.0"
+  description: "Contract synchronized with the private Spring Boot backend. x-implementation-status distinguishes implemented operations from retained future ideas. Except public operations, requests require Bearer JWT. Student timetable is scoped by faculty, not individual course enrollment."
 servers:
-  - url: http://localhost:8080/api/v1
+  - url: "http://localhost:8080/api/v1"
 security:
   - bearerAuth: []
 tags:
-  - { name: Health }
-  - { name: Authentication }
-  - { name: Rooms }
-  - { name: Class sessions }
-  - { name: Reservations }
-  - { name: Seats }
-  - { name: Attendance }
-  - { name: Incidents }
-  - { name: Resources }
-  - { name: Notifications }
+  - name: "Health"
+  - name: "Authentication"
+  - name: "Accounts"
+  - name: "Student intake"
+  - name: "Rooms"
+  - name: "Class sessions"
+  - name: "Reservations"
+  - name: "Seats"
+  - name: "Attendance"
+  - name: "Absence"
+  - name: "Incidents"
+  - name: "Resources"
+  - name: "Notifications"
+  - name: "Planned"
 paths:
   /health:
     get:
-      tags: [Health]
+      tags:
+        - "Health"
+      summary: "Backend health"
+      x-implementation-status: "implemented"
+      description: "Returns plain text smart-campus-backend"
       security: []
-      summary: Check backend health
       responses:
-        '200': { description: Backend is running, content: { text/plain: { schema: { type: string } } } }
+        "200":
+          description: "Backend running"
+          content:
+            "text/plain":
+              schema:
+                type: "string"
   /auth/login:
     post:
-      tags: [Authentication]
+      tags:
+        - "Authentication"
+      summary: "Login with verified email and password"
+      x-implementation-status: "implemented"
+      description: "JWT expires after one hour."
       security: []
-      summary: Sign in
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/LoginRequest' } } } }
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
       responses:
-        '200': { description: Authenticated, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }
-        '400': { $ref: '#/components/responses/BadRequest' }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-  /auth/logout:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/LoginResponse"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/activate:
     post:
-      tags: [Authentication]
-      summary: Sign out
-      responses: { '204': { description: Signed out }, '401': { $ref: '#/components/responses/Unauthorized' } }
-  /auth/me:
-    get:
-      tags: [Authentication]
-      summary: Get current user
+      tags:
+        - "Authentication"
+      summary: "Activate invited account"
+      x-implementation-status: "implemented"
+      description: "Activation token is single-use and valid for 24 hours."
+      security: []
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ActivateRequest"
       responses:
-        '200': { description: Current account, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }
-        '401': { $ref: '#/components/responses/Unauthorized' }
-  /auth/refresh:
+        "204":
+          description: "No content"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /admin/invitations:
     post:
-      tags: [Authentication]
-      security: []
-      summary: Refresh access token
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RefreshTokenRequest' } } } }
-      responses: { '200': { description: New token, content: { application/json: { schema: { $ref: '#/components/schemas/AuthResponse' } } } }, '401': { $ref: '#/components/responses/Unauthorized' } }
-  /auth/change-password:
-    post:
-      tags: [Authentication]
-      summary: Change password
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ChangePasswordRequest' } } } }
-      responses: { '204': { description: Password changed }, '400': { $ref: '#/components/responses/BadRequest' } }
-  /rooms:
-    get:
-      tags: [Rooms]
-      security: []
-      summary: List rooms
-      parameters: [{ $ref: '#/components/parameters/RoomType' }, { $ref: '#/components/parameters/RoomStatus' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Rooms, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Room' } } } } } }
-    post:
-      tags: [Rooms]
-      summary: Create room (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RoomRequest' } } } }
-      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '403': { $ref: '#/components/responses/Forbidden' } }
-  /rooms/{id}:
-    parameters: [{ $ref: '#/components/parameters/RoomId' }]
-    get:
-      tags: [Rooms]
-      security: []
-      summary: Get room detail
-      responses: { '200': { description: Room, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-    put:
-      tags: [Rooms]
-      summary: Update room (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/RoomRequest' } } } }
-      responses: { '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Room' } } } }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { $ref: '#/components/responses/NotFound' } }
-    delete:
-      tags: [Rooms]
-      summary: Delete room (Admin)
-      responses: { '204': { description: Deleted }, '403': { $ref: '#/components/responses/Forbidden' }, '404': { $ref: '#/components/responses/NotFound' } }
-  /rooms/{id}/schedule:
-    get:
-      tags: [Rooms]
-      security: []
-      summary: Get room schedule
-      parameters: [{ $ref: '#/components/parameters/RoomId' }, { $ref: '#/components/parameters/Date' }, { $ref: '#/components/parameters/From' }, { $ref: '#/components/parameters/To' }]
-      responses: { '200': { description: Schedule, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ScheduleEntry' } } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '404': { $ref: '#/components/responses/NotFound' } }
-  /rooms/availability:
-    get:
-      tags: [Rooms]
-      security: []
-      summary: List all rooms available in an interval
-      description: Uses existing.startTime < requested.endTime AND existing.endTime > requested.startTime; cancelled bookings are ignored.
-      parameters: [{ $ref: '#/components/parameters/Date' }, { $ref: '#/components/parameters/StartTime' }, { $ref: '#/components/parameters/EndTime' }]
-      responses: { '200': { description: Available rooms, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Room' } } } } }, '400': { $ref: '#/components/responses/BadRequest' } }
-  /class-sessions:
-    get:
-      tags: [Class sessions]
-      summary: List class sessions
-      responses: { '200': { description: Class sessions, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/ClassSession' } } } } } }
-    post:
-      tags: [Class sessions]
-      summary: Create class session
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClassSessionRequest' } } } }
-      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/ClassSession' } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '409': { $ref: '#/components/responses/Conflict' } }
-  /class-sessions/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Class sessions]
-      summary: Get class session
-      responses: { '200': { description: Class session, content: { application/json: { schema: { $ref: '#/components/schemas/ClassSession' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /classroom-reservations:
-    get:
-      tags: [Reservations]
-      summary: List classroom reservations
-      parameters: [{ $ref: '#/components/parameters/Status' }, { $ref: '#/components/parameters/From' }, { $ref: '#/components/parameters/To' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Reservations, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Reservation' } } } } } }
-    post:
-      tags: [Reservations]
-      summary: Create classroom reservation
-      description: Must validate input, room existence and overlap inside one transaction. Concurrent conflicts return 409.
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReservationRequest' } } } }
-      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '409': { $ref: '#/components/responses/Conflict' } }
-  /classroom-reservations/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Reservations]
-      summary: Get classroom reservation
-      responses: { '200': { description: Reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /classroom-reservations/{id}/cancel:
-    patch:
-      tags: [Reservations]
-      summary: Cancel classroom reservation
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /classroom-reservations/{id}/approve:
-    patch:
-      tags: [Reservations]
-      summary: Approve classroom reservation (Admin)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Approved, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
-  /classroom-reservations/{id}/reject:
-    patch:
-      tags: [Reservations]
-      summary: Reject classroom reservation (Admin)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Rejected, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
-  /study-room-reservations:
-    get:
-      tags: [Reservations]
-      summary: List study room reservations
-      parameters: [{ $ref: '#/components/parameters/Status' }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Reservations, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Reservation' } } } } } }
-    post:
-      tags: [Reservations]
-      summary: Create study room reservation
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ReservationRequest' } } } }
-      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '409': { $ref: '#/components/responses/Conflict' } }
-  /study-room-reservations/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Reservations]
-      summary: Get study room reservation
-      responses: { '200': { description: Reservation, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /study-room-reservations/{id}/cancel:
-    patch:
-      tags: [Reservations]
-      summary: Cancel study room reservation
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/Reservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /class-sessions/{id}/seats:
-    get:
-      tags: [Seats]
-      summary: List seats for a class session
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Seats, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Seat' } } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /seat-reservations:
-    post:
-      tags: [Seats]
-      summary: Reserve a seat
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/SeatReservationRequest' } } } }
-      responses: { '201': { description: Reserved, content: { application/json: { schema: { $ref: '#/components/schemas/SeatReservation' } } } }, '409': { $ref: '#/components/responses/Conflict' } }
-  /seat-reservations/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Seats]
-      summary: Get seat reservation
-      responses: { '200': { description: Seat reservation, content: { application/json: { schema: { $ref: '#/components/schemas/SeatReservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /seat-reservations/{id}/cancel:
-    patch:
-      tags: [Seats]
-      summary: Cancel seat reservation
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Cancelled, content: { application/json: { schema: { $ref: '#/components/schemas/SeatReservation' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /attendance/check-in:
-    post:
-      tags: [Attendance]
-      summary: Check in with QR
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/CheckInRequest' } } } }
-      responses: { '201': { description: Recorded, content: { application/json: { schema: { $ref: '#/components/schemas/Attendance' } } } }, '400': { $ref: '#/components/responses/BadRequest' }, '409': { $ref: '#/components/responses/Conflict' } }
-  /attendance:
-    get:
-      tags: [Attendance]
-      summary: List class attendance
-      parameters: [{ name: classSessionId, in: query, schema: { type: integer, format: int64 } }, { $ref: '#/components/parameters/Status' }]
-      responses: { '200': { description: Attendance, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Attendance' } } } } } }
-  /attendance/{id}:
-    get:
-      tags: [Attendance]
-      summary: Get attendance record
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Attendance, content: { application/json: { schema: { $ref: '#/components/schemas/Attendance' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /incidents:
-    get:
-      tags: [Incidents]
-      summary: List incidents
-      parameters: [{ $ref: '#/components/parameters/Status' }, { name: roomId, in: query, schema: { type: integer, format: int64 } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Incidents, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Incident' } } } } } }
-    post:
-      tags: [Incidents]
-      summary: Report incident
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/IncidentRequest' } } } }
-      responses: { '201': { description: Reported, content: { application/json: { schema: { $ref: '#/components/schemas/Incident' } } } }, '400': { $ref: '#/components/responses/BadRequest' } }
-  /incidents/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Incidents]
-      summary: Get incident
-      responses: { '200': { description: Incident, content: { application/json: { schema: { $ref: '#/components/schemas/Incident' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-    patch:
-      tags: [Incidents]
-      summary: Update incident
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/IncidentUpdateRequest' } } } }
-      responses: { '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Incident' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /resources:
-    get:
-      tags: [Resources]
-      summary: List resources
-      parameters: [{ name: roomId, in: query, schema: { type: integer, format: int64 } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Resources, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Resource' } } } } } }
-    post:
-      tags: [Resources]
-      summary: Create resource (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResourceRequest' } } } }
-      responses: { '201': { description: Created, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
-  /resources/{id}:
-    parameters: [{ $ref: '#/components/parameters/Id' }]
-    get:
-      tags: [Resources]
-      summary: Get resource
-      responses: { '200': { description: Resource, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-    put:
-      tags: [Resources]
-      summary: Update resource (Admin)
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ResourceRequest' } } } }
-      responses: { '200': { description: Updated, content: { application/json: { schema: { $ref: '#/components/schemas/Resource' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
-    delete:
-      tags: [Resources]
-      summary: Delete resource (Admin)
-      responses: { '204': { description: Deleted }, '403': { $ref: '#/components/responses/Forbidden' } }
-  /notifications:
-    get:
-      tags: [Notifications]
-      summary: List current user notifications
-      parameters: [{ name: isRead, in: query, schema: { type: boolean } }, { $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Notifications, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/Notification' } } } } } }
-  /notifications/{id}/read:
-    patch:
-      tags: [Notifications]
-      summary: Mark notification as read
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: Updated notification, content: { application/json: { schema: { $ref: '#/components/schemas/Notification' } } } }, '404': { $ref: '#/components/responses/NotFound' } }
-  /notifications/read-all:
-    patch:
-      tags: [Notifications]
-      summary: Mark all notifications as read
-      responses: { '204': { description: Updated } }
+      tags:
+        - "Accounts"
+      summary: "Invite student or teacher by school email"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/InviteRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/InviteResponse"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /users:
     get:
-      tags: [Authentication]
-      summary: List users (Admin)
-      parameters: [{ $ref: '#/components/parameters/Page' }, { $ref: '#/components/parameters/Size' }]
-      responses: { '200': { description: Users, content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/User' } } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
+      tags:
+        - "Accounts"
+      summary: "List users (admin); optional exact faculty name"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "faculty"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/AdminUser"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /users/me:
+    get:
+      tags:
+        - "Accounts"
+      summary: "Get own full profile"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - "Accounts"
+      summary: "Update own profile"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/UpdateProfile"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /users/me/password:
+    post:
+      tags:
+        - "Accounts"
+      summary: "Change own password"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ChangePassword"
+      responses:
+        "204":
+          description: "No content"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /users/{id}/faculty:
+    patch:
+      tags:
+        - "Accounts"
+      summary: "Assign student faculty (admin)"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/UpdateFaculty"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /users/{id}/public:
+    get:
+      tags:
+        - "Accounts"
+      summary: "Get public teacher profile"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/PublicTeacher"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /intake/students/import:
+    post:
+      tags:
+        - "Student intake"
+      summary: "Import Google Forms CSV and create student accounts"
+      x-implementation-status: "implemented"
+      description: "Admin only. Maximum 1 MB; result includes success or error per row."
+      requestBody:
+        required: true
+        content:
+          "multipart/form-data":
+            schema:
+              type: "object"
+              properties:
+                file:
+                  type: "string"
+                  format: "binary"
+              required:
+                - "file"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/StudentIntakeImport"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /intake/students:
+    get:
+      tags:
+        - "Student intake"
+      summary: "List imported student submissions (admin)"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/StudentIntake"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /intake/students/{id}/retry:
+    post:
+      tags:
+        - "Student intake"
+      summary: "Retry account creation for a failed submission (admin)"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/StudentIntakeCreated"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms:
+    get:
+      tags:
+        - "Rooms"
+      summary: "List all rooms"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Rooms"
+      summary: "Create room and physical seats (admin)"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/RoomWrite"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms/{id}:
+    get:
+      tags:
+        - "Rooms"
+      summary: "Get room"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - "Rooms"
+      summary: "Update room (admin)"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/RoomWrite"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      tags:
+        - "Rooms"
+      summary: "Update room (admin)"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/RoomWrite"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      tags:
+        - "Planned"
+      summary: "Room deletion is not implemented"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Room deletion is not implemented"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /rooms/{id}/schedule:
+    get:
+      tags:
+        - "Rooms"
+      summary: "List active bookings overlapping a date"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/RoomSchedule"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /rooms/availability:
+    get:
+      tags:
+        - "Rooms"
+      summary: "List active rooms without booking in interval"
+      x-implementation-status: "implemented"
+      description: "Public GET; startTime must precede endTime."
+      security: []
+      parameters:
+        - name: "date"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "date"
+        - name: "startTime"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "time"
+        - name: "endTime"
+          in: "query"
+          required: true
+          schema:
+            type: "string"
+            format: "time"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Room"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions:
+    get:
+      tags:
+        - "Class sessions"
+      summary: "List sessions scoped to caller role"
+      x-implementation-status: "implemented"
+      description: "Students see approved faculty sessions; teachers see their own; from and to must both be supplied and span at most 32 days."
+      parameters:
+        - name: "date"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            format: "date"
+        - name: "from"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            format: "date"
+        - name: "to"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+            format: "date"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Class sessions"
+      summary: "Create session for teacher-owned classroom booking"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ClassSessionRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{id}:
+    get:
+      tags:
+        - "Class sessions"
+      summary: "Get visible session"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{id}/absence:
+    patch:
+      tags:
+        - "Absence"
+      summary: "Teacher requests absence before one-hour deadline"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+        - name: "reason"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{id}/absence/approve:
+    patch:
+      tags:
+        - "Absence"
+      summary: "Admin approves teacher absence"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{id}/absence/reject:
+    patch:
+      tags:
+        - "Absence"
+      summary: "Admin rejects teacher absence"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ClassSession"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations:
+    get:
+      tags:
+        - "Reservations"
+      summary: "List reservations scoped to caller"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Reservations"
+      summary: "Create classroom reservation (TEACHER)"
+      x-implementation-status: "implemented"
+      description: "Overlapping room or owner bookings return 409."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ReservationRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations/{id}:
+    get:
+      tags:
+        - "Reservations"
+      summary: "Get owned reservation or admin"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations/{id}/cancel:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "cancel reservation"
+      x-implementation-status: "implemented"
+      description: "Owner or admin."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations/{id}/approve:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "approve reservation"
+      x-implementation-status: "implemented"
+      description: "Admin only."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations/{id}/reject:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "reject reservation"
+      x-implementation-status: "implemented"
+      description: "Admin only."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /study-room-reservations:
+    get:
+      tags:
+        - "Reservations"
+      summary: "List reservations scoped to caller"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "status"
+          in: "query"
+          required: false
+          schema:
+            type: "string"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Reservations"
+      summary: "Create study-room reservation (STUDENT)"
+      x-implementation-status: "implemented"
+      description: "Overlapping room or owner bookings return 409."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ReservationRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /study-room-reservations/{id}:
+    get:
+      tags:
+        - "Reservations"
+      summary: "Get owned reservation or admin"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /study-room-reservations/{id}/cancel:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "cancel reservation"
+      x-implementation-status: "implemented"
+      description: "Owner or admin."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /study-room-reservations/{id}/approve:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "approve reservation"
+      x-implementation-status: "implemented"
+      description: "Admin only."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /study-room-reservations/{id}/reject:
+    patch:
+      tags:
+        - "Reservations"
+      summary: "reject reservation"
+      x-implementation-status: "implemented"
+      description: "Admin only."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /classroom-reservations/with-session:
+    post:
+      tags:
+        - "Reservations"
+      summary: "Atomically create classroom reservation and teaching session"
+      x-implementation-status: "implemented"
+      description: "Teacher only; both changes roll back if either fails."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/TeacherScheduleRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/TeacherScheduleResult"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{sessionId}/seats:
+    get:
+      tags:
+        - "Seats"
+      summary: "List physical and reservation seat status"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "sessionId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Seat"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /seat-reservations:
+    post:
+      tags:
+        - "Seats"
+      summary: "Confirm seat in approved faculty session"
+      x-implementation-status: "implemented"
+      description: "Student only; one seat per session, overlapping sessions conflict."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/SeatReservationRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SeatReservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /seat-reservations/mine:
+    get:
+      tags:
+        - "Seats"
+      summary: "List own confirmed seats"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/SeatReservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /seat-reservations/{id}:
+    get:
+      tags:
+        - "Seats"
+      summary: "Get own seat reservation or admin"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SeatReservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /seat-reservations/{id}/cancel:
+    patch:
+      tags:
+        - "Seats"
+      summary: "Cancel own seat reservation"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/SeatReservation"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /class-sessions/{id}/qr:
+    post:
+      tags:
+        - "Attendance"
+      summary: "Teacher issues two-minute QR or manual challenge"
+      x-implementation-status: "implemented"
+      description: "Available from minute 5 through minute 20 after approved class start."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/QrResponse"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /attendance/check-in:
+    post:
+      tags:
+        - "Attendance"
+      summary: "Student checks in with challenge code"
+      x-implementation-status: "implemented"
+      description: "Requires confirmed seat in the session."
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/CheckInRequest"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Attendance"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /attendance:
+    get:
+      tags:
+        - "Attendance"
+      summary: "Teacher lists seat holders and check-in states"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "classSessionId"
+          in: "query"
+          required: true
+          schema:
+            type: "integer"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Attendance"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /attendance/mine:
+    get:
+      tags:
+        - "Attendance"
+      summary: "Student lists checked-in session IDs"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  type: "integer"
+                  format: "int64"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /attendance/{id}:
+    delete:
+      tags:
+        - "Attendance"
+      summary: "Teacher revokes a check-in"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "204":
+          description: "No content"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - "Planned"
+      summary: "Single attendance record lookup is not implemented"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Single attendance record lookup is not implemented"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /absence-requests:
+    get:
+      tags:
+        - "Absence"
+      summary: "List visible student or teacher absence requests"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Absence"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /absence-requests/class-sessions/{sessionId}:
+    post:
+      tags:
+        - "Absence"
+      summary: "Student requests absence before 15-minute deadline"
+      x-implementation-status: "implemented"
+      description: "Requires confirmed seat."
+      parameters:
+        - name: "sessionId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/AbsenceReason"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Absence"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /absence-requests/{id}:
+    patch:
+      tags:
+        - "Absence"
+      summary: "Session teacher approves or rejects student absence"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/AbsenceDecision"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Absence"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /incidents:
+    get:
+      tags:
+        - "Incidents"
+      summary: "Admin lists all incidents; teacher lists own"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Incident"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Incidents"
+      summary: "Teacher reports incident"
+      x-implementation-status: "implemented"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/IncidentReport"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /incidents/{id}:
+    patch:
+      tags:
+        - "Incidents"
+      summary: "Admin advances incident status"
+      x-implementation-status: "implemented"
+      description: "OPEN to IN_PROGRESS/RESOLVED/REJECTED; IN_PROGRESS to RESOLVED/REJECTED; terminal states cannot reopen."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/IncidentDecision"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Incident"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - "Planned"
+      summary: "Single incident lookup is not implemented"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Single incident lookup is not implemented"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /resources:
+    get:
+      tags:
+        - "Resources"
+      summary: "List resources"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Resource"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      tags:
+        - "Planned"
+      summary: "Use implemented POST /resources/rooms/{roomId}"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Use implemented POST /resources/rooms/{roomId}"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /resources/rooms/{roomId}:
+    post:
+      tags:
+        - "Resources"
+      summary: "Admin creates room resource"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "roomId"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ResourceWrite"
+      responses:
+        "201":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /resources/{id}:
+    patch:
+      tags:
+        - "Resources"
+      summary: "Admin updates room resource"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      requestBody:
+        required: true
+        content:
+          "application/json":
+            schema:
+              $ref: "#/components/schemas/ResourceWrite"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: "Business conflict"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    get:
+      tags:
+        - "Resources"
+      summary: "Get resource by ID"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Resource found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Resource"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      tags:
+        - "Planned"
+      summary: "Use implemented PATCH /resources/{id}"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Use implemented PATCH /resources/{id}"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+    delete:
+      tags:
+        - "Planned"
+      summary: "Resource deletion is not implemented"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Resource deletion is not implemented"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /notifications:
+    get:
+      tags:
+        - "Notifications"
+      summary: "List current user's notifications"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/Notification"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /notifications/{id}/read:
+    patch:
+      tags:
+        - "Notifications"
+      summary: "Mark own notification read"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "Success"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Notification"
+        "400":
+          description: "Invalid request"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Insufficient permission"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "Resource not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/logout:
+    post:
+      tags:
+        - "Planned"
+      summary: "Server-side token revocation; currently clients discard JWT"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Server-side token revocation; currently clients discard JWT"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /auth/me:
+    get:
+      tags:
+        - "Planned"
+      summary: "Alias for implemented GET /users/me"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Alias for implemented GET /users/me"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /auth/refresh:
+    post:
+      tags:
+        - "Planned"
+      summary: "Refresh tokens are not issued by current backend"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Refresh tokens are not issued by current backend"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /auth/change-password:
+    post:
+      tags:
+        - "Planned"
+      summary: "Alias for implemented POST /users/me/password"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Alias for implemented POST /users/me/password"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
+  /notifications/read-all:
+    patch:
+      tags:
+        - "Notifications"
+      summary: "Mark all current user's unread notifications as read"
+      x-implementation-status: "implemented"
+      responses:
+        "200":
+          description: "Number of notifications changed to read; repeated requests return zero"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/MarkAllReadResult"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /users/{id}:
     get:
-      tags: [Authentication]
-      summary: Get user (Admin)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      responses: { '200': { description: User, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
+      tags:
+        - "Users"
+      summary: "Admin gets a user's full profile"
+      x-implementation-status: "implemented"
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema:
+            type: "integer"
+            format: "int64"
+      responses:
+        "200":
+          description: "User found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/Profile"
+        "401":
+          description: "Authentication required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: "Admin role required"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: "User not found"
+          content:
+            "application/json":
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     patch:
-      tags: [Authentication]
-      summary: Update user roles/status (Admin)
-      parameters: [{ $ref: '#/components/parameters/Id' }]
-      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/UserUpdateRequest' } } } }
-      responses: { '200': { description: Updated user, content: { application/json: { schema: { $ref: '#/components/schemas/User' } } } }, '403': { $ref: '#/components/responses/Forbidden' } }
+      tags:
+        - "Planned"
+      summary: "Admin role/status editing is not implemented"
+      x-implementation-status: "planned"
+      description: "Not exposed by the current backend. Admin role/status editing is not implemented"
+      responses:
+        "404":
+          description: "No matching backend endpoint"
 components:
   securitySchemes:
-    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
-  parameters:
-    Id: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
-    RoomId: { name: id, in: path, required: true, schema: { type: integer, format: int64 } }
-    Date: { name: date, in: query, required: true, schema: { type: string, format: date } }
-    From: { name: from, in: query, schema: { type: string, format: date-time } }
-    To: { name: to, in: query, schema: { type: string, format: date-time } }
-    StartTime: { name: startTime, in: query, required: true, schema: { type: string, format: time } }
-    EndTime: { name: endTime, in: query, required: true, schema: { type: string, format: time } }
-    RoomType: { name: type, in: query, schema: { type: string, enum: [THEORY, PRACTICE, STUDY] } }
-    RoomStatus: { name: status, in: query, schema: { type: string, enum: [AVAILABLE, INACTIVE, MAINTENANCE, CLOSED] } }
-    Status: { name: status, in: query, schema: { type: string } }
-    Page: { name: page, in: query, schema: { type: integer, minimum: 0, default: 0 } }
-    Size: { name: size, in: query, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
-  responses:
-    BadRequest: { description: Invalid request, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    Unauthorized: { description: Authentication required, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    Forbidden: { description: Insufficient permission, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
-    Conflict: { description: Reservation or resource conflict, content: { application/json: { schema: { $ref: '#/components/schemas/ErrorResponse' } } } }
+    bearerAuth:
+      type: "http"
+      scheme: "bearer"
+      bearerFormat: "JWT"
   schemas:
     ErrorResponse:
-      type: object
-      required: [status, message]
-      properties: { status: { type: integer, example: 409 }, message: { type: string } }
+      type: "object"
+      properties:
+        status:
+          type: "integer"
+        message:
+          type: "string"
+      required:
+        - "status"
+        - "message"
     LoginRequest:
-      type: object
-      required: [email, password]
-      properties: { email: { type: string, format: email }, password: { type: string, format: password } }
-    RefreshTokenRequest: { type: object, required: [refreshToken], properties: { refreshToken: { type: string } } }
-    ChangePasswordRequest: { type: object, required: [currentPassword, newPassword], properties: { currentPassword: { type: string, format: password }, newPassword: { type: string, format: password, minLength: 8 } } }
-    AuthResponse: { type: object, required: [accessToken, user], properties: { accessToken: { type: string }, refreshToken: { type: string }, user: { $ref: '#/components/schemas/User' } } }
-    User: { type: object, properties: { id: { type: integer, format: int64 }, userCode: { type: string }, fullName: { type: string }, email: { type: string, format: email }, roles: { type: array, items: { type: string } }, status: { type: string, enum: [ACTIVE, INACTIVE] } } }
-    UserUpdateRequest: { type: object, properties: { roles: { type: array, items: { type: string } }, status: { type: string, enum: [ACTIVE, INACTIVE] } } }
-    Room: { type: object, required: [id, code, name, status], properties: { id: { type: integer, format: int64 }, code: { type: string }, name: { type: string }, location: { type: string }, type: { type: string, enum: [THEORY, PRACTICE, STUDY] }, status: { type: string, enum: [AVAILABLE, INACTIVE, MAINTENANCE, CLOSED] } } }
-    RoomRequest: { type: object, required: [code, name, status], properties: { code: { type: string }, name: { type: string }, location: { type: string }, type: { type: string }, status: { type: string } } }
-    ScheduleEntry: { type: object, properties: { bookingId: { type: integer, format: int64 }, startTime: { type: string, format: date-time }, endTime: { type: string, format: date-time }, status: { type: string } } }
-    ClassSession: { type: object, properties: { id: { type: integer, format: int64 }, bookingId: { type: integer, format: int64 }, courseCode: { type: string }, title: { type: string }, roomId: { type: integer, format: int64 }, startTime: { type: string, format: date-time }, endTime: { type: string, format: date-time } } }
-    ClassSessionRequest: { type: object, required: [bookingId, courseCode, title], properties: { bookingId: { type: integer, format: int64 }, courseCode: { type: string }, title: { type: string } } }
-    ReservationRequest: { type: object, required: [roomId, startTime, endTime], properties: { roomId: { type: integer, format: int64 }, classSessionId: { type: integer, format: int64 }, startTime: { type: string, format: date-time }, endTime: { type: string, format: date-time }, note: { type: string } } }
-    Reservation: { allOf: [{ $ref: '#/components/schemas/ReservationRequest' }, { type: object, properties: { id: { type: integer, format: int64 }, userId: { type: integer, format: int64 }, status: { type: string, enum: [PENDING, CONFIRMED, CANCELLED, REJECTED] }, createdAt: { type: string, format: date-time } } }] }
-    Seat: { type: object, properties: { id: { type: integer, format: int64 }, roomId: { type: integer, format: int64 }, seatNumber: { type: integer }, status: { type: string, enum: [AVAILABLE, RESERVED, DISABLED] } } }
-    SeatReservationRequest: { type: object, required: [classSessionId, seatId], properties: { classSessionId: { type: integer, format: int64 }, seatId: { type: integer, format: int64 } } }
-    SeatReservation: { allOf: [{ $ref: '#/components/schemas/SeatReservationRequest' }, { type: object, properties: { id: { type: integer, format: int64 }, userId: { type: integer, format: int64 }, status: { type: string, enum: [CONFIRMED, CANCELLED] } } }] }
-    CheckInRequest: { type: object, required: [qrCode, classSessionId], properties: { qrCode: { type: string }, classSessionId: { type: integer, format: int64 } } }
-    Attendance: { type: object, properties: { id: { type: integer, format: int64 }, bookingId: { type: integer, format: int64 }, userId: { type: integer, format: int64 }, status: { type: string, enum: [PRESENT, ABSENT, LATE] }, checkedInAt: { type: string, format: date-time } } }
-    IncidentRequest: { type: object, required: [roomId, incidentType, description], properties: { roomId: { type: integer, format: int64 }, resourceId: { type: integer, format: int64 }, incidentType: { type: string }, description: { type: string } } }
-    IncidentUpdateRequest: { type: object, properties: { status: { type: string, enum: [OPEN, IN_PROGRESS, RESOLVED, CLOSED] }, description: { type: string } } }
-    Incident: { allOf: [{ $ref: '#/components/schemas/IncidentRequest' }, { type: object, properties: { id: { type: integer, format: int64 }, reportedBy: { type: integer, format: int64 }, status: { type: string }, occurredAt: { type: string, format: date-time }, resolvedAt: { type: string, format: date-time } } }] }
-    ResourceRequest: { type: object, required: [roomId, resourceName], properties: { roomId: { type: integer, format: int64 }, resourceName: { type: string }, resourceType: { type: string }, quantity: { type: integer, minimum: 0 }, status: { type: string } } }
-    Resource: { allOf: [{ $ref: '#/components/schemas/ResourceRequest' }, { type: object, properties: { id: { type: integer, format: int64 } } }] }
-    Notification: { type: object, properties: { id: { type: integer, format: int64 }, title: { type: string }, message: { type: string }, isRead: { type: boolean }, createdAt: { type: string, format: date-time } } }
+      type: "object"
+      properties:
+        email:
+          type: "string"
+          format: "email"
+        password:
+          type: "string"
+      required:
+        - "email"
+        - "password"
+    LoginResponse:
+      type: "object"
+      properties:
+        accessToken:
+          type: "string"
+        expiresAt:
+          type: "string"
+          format: "date-time"
+        id:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        email:
+          type: "string"
+          format: "email"
+        roles:
+          type: "array"
+          items:
+            type: "string"
+      required:
+        - "accessToken"
+        - "expiresAt"
+        - "id"
+        - "name"
+        - "email"
+        - "roles"
+    ActivateRequest:
+      type: "object"
+      properties:
+        token:
+          type: "string"
+        password:
+          type: "string"
+      required:
+        - "token"
+        - "password"
+    InviteRequest:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        name:
+          type: "string"
+        email:
+          type: "string"
+          format: "email"
+        role:
+          type: "string"
+          enum:
+            - "STUDENT"
+            - "TEACHER"
+        faculty:
+          type: "string"
+      required:
+        - "code"
+        - "name"
+        - "email"
+        - "role"
+        - "faculty"
+    InviteResponse:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        email:
+          type: "string"
+        role:
+          type: "string"
+        faculty:
+          type: "string"
+    Profile:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        code:
+          type: "string"
+        name:
+          type: "string"
+        email:
+          type: "string"
+        faculty:
+          type: "string"
+        roles:
+          type: "array"
+          items:
+            type: "string"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        verified:
+          type: "boolean"
+        birthDate:
+          type: "string"
+          format: "date"
+        phone:
+          type: "string"
+        personalEmail:
+          type: "string"
+        className:
+          type: "string"
+        entryYear:
+          type: "integer"
+    PublicTeacher:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        code:
+          type: "string"
+        name:
+          type: "string"
+        email:
+          type: "string"
+        faculty:
+          type: "string"
+    UpdateProfile:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        birthDate:
+          type: "string"
+          format: "date"
+        phone:
+          type: "string"
+        personalEmail:
+          type: "string"
+        className:
+          type: "string"
+        entryYear:
+          type: "integer"
+      required:
+        - "name"
+    ChangePassword:
+      type: "object"
+      properties:
+        currentPassword:
+          type: "string"
+        newPassword:
+          type: "string"
+          minLength: 8
+      required:
+        - "currentPassword"
+        - "newPassword"
+    AdminUser:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        code:
+          type: "string"
+        name:
+          type: "string"
+        email:
+          type: "string"
+        faculty:
+          type: "string"
+        role:
+          type: "string"
+        verified:
+          type: "boolean"
+    UpdateFaculty:
+      type: "object"
+      properties:
+        faculty:
+          type: "string"
+      required:
+        - "faculty"
+    RoomWrite:
+      type: "object"
+      properties:
+        code:
+          type: "string"
+        name:
+          type: "string"
+        location:
+          type: "string"
+        status:
+          type: "string"
+          enum:
+            - "ACTIVE"
+            - "MAINTENANCE"
+            - "INACTIVE"
+        type:
+          type: "string"
+          enum:
+            - "THEORY"
+            - "LAB"
+            - "SELF_STUDY"
+      required:
+        - "code"
+        - "name"
+        - "status"
+        - "type"
+    Room:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        code:
+          type: "string"
+        name:
+          type: "string"
+        location:
+          type: "string"
+        status:
+          type: "string"
+        type:
+          type: "string"
+        capacity:
+          type: "integer"
+    RoomSchedule:
+      type: "object"
+      properties:
+        bookingId:
+          type: "integer"
+          format: "int64"
+        startTime:
+          type: "string"
+          format: "date-time"
+        endTime:
+          type: "string"
+          format: "date-time"
+        status:
+          type: "string"
+    ReservationRequest:
+      type: "object"
+      properties:
+        roomId:
+          type: "integer"
+          format: "int64"
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        startTime:
+          type: "string"
+          format: "date-time"
+        endTime:
+          type: "string"
+          format: "date-time"
+        note:
+          type: "string"
+      required:
+        - "roomId"
+        - "startTime"
+        - "endTime"
+    Reservation:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        userId:
+          type: "integer"
+          format: "int64"
+        roomId:
+          type: "integer"
+          format: "int64"
+        startTime:
+          type: "string"
+          format: "date-time"
+        endTime:
+          type: "string"
+          format: "date-time"
+        status:
+          type: "string"
+          enum:
+            - "PENDING"
+            - "CONFIRMED"
+            - "REJECTED"
+            - "CANCELLED"
+        createdAt:
+          type: "string"
+          format: "date-time"
+    ClassSessionRequest:
+      type: "object"
+      properties:
+        bookingId:
+          type: "integer"
+          format: "int64"
+        courseCode:
+          type: "string"
+        title:
+          type: "string"
+        makeup:
+          type: "boolean"
+      required:
+        - "bookingId"
+        - "courseCode"
+        - "title"
+    ClassSession:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        bookingId:
+          type: "integer"
+          format: "int64"
+        courseCode:
+          type: "string"
+        title:
+          type: "string"
+        roomId:
+          type: "integer"
+          format: "int64"
+        startTime:
+          type: "string"
+          format: "date-time"
+        endTime:
+          type: "string"
+          format: "date-time"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        calendarStatus:
+          type: "string"
+          enum:
+            - "PENDING"
+            - "SCHEDULED"
+            - "MAKEUP"
+            - "ABSENCE_PENDING"
+            - "ABSENT"
+            - "CANCELLED"
+            - "REJECTED"
+        teacherId:
+          type: "integer"
+          format: "int64"
+    TeacherScheduleRequest:
+      type: "object"
+      properties:
+        roomId:
+          type: "integer"
+          format: "int64"
+        startTime:
+          type: "string"
+          format: "date-time"
+        endTime:
+          type: "string"
+          format: "date-time"
+        courseCode:
+          type: "string"
+        title:
+          type: "string"
+        makeup:
+          type: "boolean"
+      required:
+        - "roomId"
+        - "startTime"
+        - "endTime"
+        - "courseCode"
+        - "title"
+    TeacherScheduleResult:
+      type: "object"
+      properties:
+        reservation:
+          $ref: "#/components/schemas/Reservation"
+        session:
+          $ref: "#/components/schemas/ClassSession"
+    Seat:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        roomId:
+          type: "integer"
+          format: "int64"
+        seatNumber:
+          type: "integer"
+        status:
+          type: "string"
+          enum:
+            - "AVAILABLE"
+            - "RESERVED"
+            - "UNAVAILABLE"
+            - "MAINTENANCE"
+            - "DISABLED"
+    SeatReservationRequest:
+      type: "object"
+      properties:
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        seatId:
+          type: "integer"
+          format: "int64"
+      required:
+        - "classSessionId"
+        - "seatId"
+    SeatReservation:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        seatId:
+          type: "integer"
+          format: "int64"
+        userId:
+          type: "integer"
+          format: "int64"
+        roomId:
+          type: "integer"
+          format: "int64"
+        status:
+          type: "string"
+          enum:
+            - "PENDING"
+            - "CONFIRMED"
+            - "CANCELLED"
+        createdAt:
+          type: "string"
+          format: "date-time"
+    QrResponse:
+      type: "object"
+      properties:
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        token:
+          type: "string"
+        expiresAt:
+          type: "string"
+          format: "date-time"
+    CheckInRequest:
+      type: "object"
+      properties:
+        qrCode:
+          type: "string"
+        classSessionId:
+          type: "integer"
+          format: "int64"
+      required:
+        - "qrCode"
+        - "classSessionId"
+    Attendance:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        userId:
+          type: "integer"
+          format: "int64"
+        seatId:
+          type: "integer"
+          format: "int64"
+        seatNumber:
+          type: "integer"
+        status:
+          type: "string"
+          enum:
+            - "NOT_CHECKED_IN"
+            - "PRESENT"
+            - "LATE"
+            - "EXCUSED"
+        checkedInAt:
+          type: "string"
+          format: "date-time"
+        studentName:
+          type: "string"
+    AbsenceReason:
+      type: "object"
+      properties:
+        reason:
+          type: "string"
+      required:
+        - "reason"
+    AbsenceDecision:
+      type: "object"
+      properties:
+        approve:
+          type: "boolean"
+        note:
+          type: "string"
+      required:
+        - "approve"
+    Absence:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        userId:
+          type: "integer"
+          format: "int64"
+        classSessionId:
+          type: "integer"
+          format: "int64"
+        type:
+          type: "string"
+          enum:
+            - "STUDENT"
+            - "TEACHER"
+        reason:
+          type: "string"
+        status:
+          type: "string"
+          enum:
+            - "PENDING"
+            - "APPROVED"
+            - "REJECTED"
+        reviewedBy:
+          type: "integer"
+          format: "int64"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        reviewedAt:
+          type: "string"
+          format: "date-time"
+    IncidentReport:
+      type: "object"
+      properties:
+        roomId:
+          type: "integer"
+          format: "int64"
+        resourceId:
+          type: "integer"
+          format: "int64"
+        category:
+          type: "string"
+          enum:
+            - "PROJECTOR"
+            - "AC"
+            - "LIGHTING"
+            - "SOUND"
+            - "OTHER"
+        description:
+          type: "string"
+      required:
+        - "roomId"
+        - "category"
+        - "description"
+    IncidentDecision:
+      type: "object"
+      properties:
+        status:
+          type: "string"
+          enum:
+            - "OPEN"
+            - "IN_PROGRESS"
+            - "RESOLVED"
+            - "REJECTED"
+        assignedTo:
+          type: "integer"
+          format: "int64"
+      required:
+        - "status"
+    Incident:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        roomId:
+          type: "integer"
+          format: "int64"
+        roomCode:
+          type: "string"
+        resourceId:
+          type: "integer"
+          format: "int64"
+        reportedBy:
+          type: "integer"
+          format: "int64"
+        reporterName:
+          type: "string"
+        category:
+          type: "string"
+        description:
+          type: "string"
+        status:
+          type: "string"
+        assignedTo:
+          type: "integer"
+          format: "int64"
+        createdAt:
+          type: "string"
+          format: "date-time"
+        resolvedAt:
+          type: "string"
+          format: "date-time"
+    ResourceWrite:
+      type: "object"
+      properties:
+        name:
+          type: "string"
+        type:
+          type: "string"
+        quantity:
+          type: "integer"
+        status:
+          type: "string"
+          enum:
+            - "AVAILABLE"
+            - "IN_USE"
+            - "BROKEN"
+            - "MAINTENANCE"
+      required:
+        - "name"
+        - "type"
+        - "status"
+    Resource:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        roomId:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        type:
+          type: "string"
+        quantity:
+          type: "integer"
+        status:
+          type: "string"
+    Notification:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        title:
+          type: "string"
+        message:
+          type: "string"
+        type:
+          type: "string"
+        bookingId:
+          type: "integer"
+          format: "int64"
+        incidentId:
+          type: "integer"
+          format: "int64"
+        read:
+          type: "boolean"
+        createdAt:
+          type: "string"
+          format: "date-time"
+    MarkAllReadResult:
+      type: "object"
+      properties:
+        updatedCount:
+          type: "integer"
+          minimum: 0
+      required:
+        - "updatedCount"
+    StudentIntake:
+      type: "object"
+      properties:
+        id:
+          type: "integer"
+          format: "int64"
+        name:
+          type: "string"
+        phone:
+          type: "string"
+        birthDate:
+          type: "string"
+          format: "date"
+        gender:
+          type: "string"
+        personalEmail:
+          type: "string"
+        facultyCode:
+          type: "string"
+        faculty:
+          type: "string"
+        entryYear:
+          type: "integer"
+        status:
+          type: "string"
+        userId:
+          type: "integer"
+          format: "int64"
+        createdAt:
+          type: "string"
+          format: "date-time"
+    StudentIntakeCreated:
+      type: "object"
+      properties:
+        intake:
+          $ref: "#/components/schemas/StudentIntake"
+        code:
+          type: "string"
+        schoolEmail:
+          type: "string"
+    StudentIntakeRow:
+      type: "object"
+      properties:
+        line:
+          type: "integer"
+        name:
+          type: "string"
+        personalEmail:
+          type: "string"
+        intakeId:
+          type: "integer"
+          format: "int64"
+        code:
+          type: "string"
+        schoolEmail:
+          type: "string"
+        error:
+          type: "string"
+    StudentIntakeImport:
+      type: "object"
+      properties:
+        total:
+          type: "integer"
+        imported:
+          type: "integer"
+        failed:
+          type: "integer"
+        rows:
+          type: "array"
+          items:
+            $ref: "#/components/schemas/StudentIntakeRow"

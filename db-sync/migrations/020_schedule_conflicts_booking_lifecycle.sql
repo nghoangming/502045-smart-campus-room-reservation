@@ -132,6 +132,41 @@ END $$;
 REVOKE ALL ON FUNCTION review_booking(bigint,bigint,boolean,text) FROM PUBLIC;
 REVOKE ALL ON FUNCTION cancel_booking(bigint,bigint,text) FROM PUBLIC;
 
+CREATE FUNCTION notify_booking_status() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ INSERT INTO notifications(user_id,title,message,notification_type,related_booking_id)
+ VALUES (NEW.user_id, 'Cập nhật yêu cầu đặt phòng',
+   'Yêu cầu đặt phòng đã chuyển sang trạng thái ' || NEW.status || '.',
+   'BOOKING', NEW.booking_id);
+ RETURN NEW;
+END $$;
+CREATE TRIGGER trg_notify_booking_status AFTER UPDATE OF status ON bookings
+FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
+EXECUTE FUNCTION notify_booking_status();
+
+-- The faculty calendar is shared by all students in the faculty, including
+-- those who have not chosen a seat yet.
+CREATE OR REPLACE FUNCTION notify_teacher_absence_approved() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+DECLARE v_booking_id bigint; v_faculty char(1);
+BEGIN
+ SELECT booking_id,faculty_code INTO STRICT v_booking_id,v_faculty
+ FROM class_sessions WHERE class_session_id=NEW.class_session_id;
+ INSERT INTO notifications(user_id,title,message,notification_type,related_booking_id)
+ SELECT recipients.user_id,
+   CASE WHEN recipients.user_id=NEW.user_id THEN 'Yêu cầu báo vắng đã được duyệt'
+     ELSE 'Buổi học đã được báo vắng' END,
+   CASE WHEN recipients.user_id=NEW.user_id THEN 'Admin đã duyệt yêu cầu báo vắng của bạn.'
+     ELSE 'Giảng viên đã được duyệt báo vắng cho buổi học của khoa.' END,
+   'ABSENCE',v_booking_id
+ FROM (SELECT NEW.user_id AS user_id UNION
+       SELECT u.user_id FROM users u JOIN user_roles ur ON ur.user_id=u.user_id
+       JOIN roles r USING(role_id) WHERE r.role_name='STUDENT'
+         AND u.faculty_code=v_faculty) recipients;
+ RETURN NEW;
+END $$;
+
 CREATE OR REPLACE VIEW class_session_calendar AS
 SELECT cs.class_session_id,cs.booking_id,cs.course_code,cs.title,cs.room_id,
  cs.start_time,cs.end_time,cs.session_kind,
@@ -149,7 +184,8 @@ JOIN users student ON student.user_id=app_current_user_id()
 WHERE app_current_role()='STUDENT'
  AND EXISTS (SELECT 1 FROM user_roles ur JOIN roles r USING(role_id)
    WHERE ur.user_id=student.user_id AND r.role_name='STUDENT')
- AND student.faculty_code=cs.faculty_code AND b.status<>'PENDING';
+ AND student.faculty_code=cs.faculty_code
+ AND (b.status='CONFIRMED' OR (b.status='CANCELLED' AND cal.calendar_status='ABSENT'));
 
 CREATE OR REPLACE VIEW class_seat_availability AS
 SELECT cs.class_session_id,s.seat_id,s.room_id,s.seat_number,s.status AS physical_status,
