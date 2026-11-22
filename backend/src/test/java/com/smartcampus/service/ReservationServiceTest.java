@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.sql.SQLException;
 import java.time.OffsetDateTime;
@@ -123,7 +124,14 @@ class ReservationServiceTest {
         when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
         when(room.getType()).thenReturn("LAB");
         when(booking.getStatus()).thenReturn("CONFIRMED");
-        reservationService.cancel(10L, "CLASSROOM", 7L);
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            reservationService.cancel(10L, "CLASSROOM", 7L);
+        } finally {
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+        verify(jdbc).queryForObject("SELECT set_config('app.user_id', ?, true)", String.class, "7");
+        verify(jdbc).queryForObject("SELECT set_config('app.role', ?, true)", String.class, "TEACHER");
         verify(jdbc).queryForObject(org.mockito.ArgumentMatchers.contains("cancel_booking"),
                 org.mockito.ArgumentMatchers.<org.springframework.jdbc.core.RowMapper<com.smartcampus.dto.ReservationResponse>>any(),
                 org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(7L),

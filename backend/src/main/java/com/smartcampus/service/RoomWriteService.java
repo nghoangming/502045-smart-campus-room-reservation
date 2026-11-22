@@ -1,5 +1,6 @@
 package com.smartcampus.service;
 
+import com.smartcampus.auth.DbSessionIdentity;
 import com.smartcampus.dto.RoomResponse;
 import com.smartcampus.dto.RoomWriteRequest;
 import java.util.List;
@@ -65,6 +66,13 @@ public class RoomWriteService {
         } catch (DataIntegrityViolationException ex) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Không thể giảm sức chứa khi ghế đã có lịch sử đặt, hoặc mã phòng bị trùng.", ex);
         }
+    }
+
+    @Transactional
+    public void delete(Long id, Long userId) {
+        admin(userId);
+        DbSessionIdentity.set(jdbc, userId, "ADMIN");
+        jdbc.queryForObject("SELECT 1 FROM delete_unused_room(?)", Integer.class, id);
     }
 
     private RoomResponse read(Long id) {

@@ -23,14 +23,22 @@ export function QrScanner({ onCode }: { onCode: (code: string) => void }) {
 
   const start = async () => {
     setError("");
-    const BarcodeDetector = (window as Window & { BarcodeDetector?: DetectorConstructor }).BarcodeDetector;
-    if (!BarcodeDetector) { setError("Trình duyệt này chưa hỗ trợ quét QR. Bạn có thể nhập mã thủ công."); return; }
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setError("Trình duyệt không cho phép dùng camera trên kết nối này. Hãy mở trang bằng HTTPS hoặc localhost.");
+        return;
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" }, audio: false });
       streamRef.current = stream;
       if (!videoRef.current) { stop(); return; }
       videoRef.current.srcObject = stream;
       await videoRef.current.play();
+      const BarcodeDetector = (window as Window & { BarcodeDetector?: DetectorConstructor }).BarcodeDetector;
+      if (!BarcodeDetector) {
+        stop();
+        setError("Camera đã được cấp quyền, nhưng trình duyệt này chưa có bộ đọc QR. Hãy dùng Safari/Chrome mới hơn hoặc nhập mã thủ công.");
+        return;
+      }
       const detector = new BarcodeDetector({ formats: ["qr_code"] });
       setRunning(true);
       let busy = false;
@@ -45,7 +53,17 @@ export function QrScanner({ onCode }: { onCode: (code: string) => void }) {
           setError("Không thể đọc hình từ camera. Hãy mở lại camera hoặc nhập mã thủ công.");
         } finally { busy = false; }
       }, 350);
-    } catch { stop(); setError("Không thể mở camera. Hãy cấp quyền camera hoặc nhập mã thủ công."); }
+    } catch (reason) {
+      stop();
+      const name = reason instanceof DOMException ? reason.name : "";
+      if (name === "NotAllowedError" || name === "SecurityError") {
+        setError("Trình duyệt đã chặn camera. Hãy mở trang bằng HTTPS, rồi cho phép quyền Camera trong cài đặt trang.");
+      } else if (name === "NotFoundError") {
+        setError("Không tìm thấy camera trên thiết bị này.");
+      } else {
+        setError("Không thể mở camera. Hãy kiểm tra quyền camera của trình duyệt hoặc nhập mã thủ công.");
+      }
+    }
   };
 
   return <div className="ws-qr-scanner">

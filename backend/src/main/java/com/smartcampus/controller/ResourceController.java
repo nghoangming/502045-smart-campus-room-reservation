@@ -1,6 +1,7 @@
 package com.smartcampus.controller;
 
 import com.smartcampus.auth.AccessService;
+import com.smartcampus.auth.DbSessionIdentity;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -43,8 +44,15 @@ public class ResourceController {
         return rows.getFirst();
     }
 
+    private String viewerRole(Long userId) {
+        if (access.hasPermission(userId, "ADMIN", "VIEW_RESOURCES")) return "ADMIN";
+        if (access.hasPermission(userId, "TEACHER", "VIEW_RESOURCES")) return "TEACHER";
+        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires VIEW_RESOURCES permission");
+    }
+
     @GetMapping
     public List<Resource> list(@RequestAttribute("authenticatedUserId") Long userId) {
+        viewerRole(userId);
         return jdbc.query("""
             SELECT resource_id,room_id,resource_name,resource_type,quantity,status
             FROM resources ORDER BY room_id,resource_id
@@ -56,7 +64,20 @@ public class ResourceController {
     @Transactional(readOnly = true)
     public Resource get(@PathVariable Long id,
                         @RequestAttribute("authenticatedUserId") Long userId) {
+        viewerRole(userId);
         return one(id);
+    }
+
+    @GetMapping("/rooms/{roomId}")
+    @Transactional(readOnly = true)
+    public List<Resource> forRoom(@PathVariable Long roomId,
+                                  @RequestAttribute("authenticatedUserId") Long userId) {
+        DbSessionIdentity.set(jdbc, userId, viewerRole(userId));
+        return jdbc.query("""
+            SELECT resource_id,room_id,resource_name,resource_type,quantity,status
+            FROM list_room_resources(?) ORDER BY resource_id
+            """, (rs,n) -> new Resource(rs.getLong(1),rs.getLong(2),rs.getString(3),
+                    rs.getString(4),rs.getInt(5),rs.getString(6)),roomId);
     }
 
     @PostMapping("/rooms/{roomId}")
@@ -84,5 +105,15 @@ public class ResourceController {
             """, body.name().trim(), body.type().trim(), body.quantity(), body.status(), id) == 0)
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Resource not found");
         return one(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @Transactional
+    public void delete(@PathVariable Long id,
+                       @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "ADMIN");
+        DbSessionIdentity.set(jdbc, userId, "ADMIN");
+        jdbc.queryForObject("SELECT 1 FROM delete_room_resource(?)", Integer.class, id);
     }
 }

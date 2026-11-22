@@ -28,6 +28,23 @@ public class AccessService {
         }
     }
 
+    public boolean hasPermission(Long userId, String role, String permission) {
+        Integer count = jdbc.queryForObject("""
+                SELECT count(*) FROM user_roles ur
+                JOIN roles r USING(role_id)
+                JOIN role_permissions rp USING(role_id)
+                JOIN permissions p USING(permission_id)
+                WHERE ur.user_id=? AND r.role_name=? AND p.permission_name=?
+                """, Integer.class, userId, role, permission);
+        return count != null && count > 0;
+    }
+
+    public void requirePermission(Long userId, String role, String permission) {
+        if (!hasPermission(userId, role, permission)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Requires " + permission + " permission");
+        }
+    }
+
     public void requireOwnerOrAdmin(Long userId, Long ownerId) {
         if (!Objects.equals(userId, ownerId) && !hasRole(userId, "ADMIN")) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your reservation");

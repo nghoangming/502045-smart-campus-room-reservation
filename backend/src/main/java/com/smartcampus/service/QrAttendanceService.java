@@ -1,7 +1,9 @@
 package com.smartcampus.service;
 
+import com.smartcampus.auth.DbSessionIdentity;
 import com.smartcampus.controller.QrAttendanceController.AttendanceResponse;
 import com.smartcampus.controller.QrAttendanceController.CheckInRequest;
+import com.smartcampus.controller.QrAttendanceController.CorrectionRequest;
 import com.smartcampus.controller.QrAttendanceController.QrResponse;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -16,15 +18,19 @@ public class QrAttendanceService {
     private final JdbcTemplate jdbc;
     public QrAttendanceService(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
-    private void role(Long userId, String role) {
-        Integer count = jdbc.queryForObject("SELECT count(*) FROM user_roles ur JOIN roles r USING(role_id) WHERE ur.user_id=? AND r.role_name=?",
-                Integer.class, userId, role);
-        if (count == null || count == 0) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Role not allowed");
+    private void permission(Long userId, String role, String permission) {
+        Integer count = jdbc.queryForObject("""
+                SELECT count(*) FROM user_roles ur JOIN roles r USING(role_id)
+                JOIN role_permissions rp USING(role_id) JOIN permissions p USING(permission_id)
+                WHERE ur.user_id=? AND r.role_name=? AND p.permission_name=?
+                """, Integer.class, userId, role, permission);
+        if (count == null || count == 0) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Permission not allowed");
     }
 
     @Transactional
     public QrResponse generate(Long sessionId, Long teacherId) {
-        role(teacherId, "TEACHER");
+        permission(teacherId, "TEACHER", "MANAGE_ATTENDANCE");
+        DbSessionIdentity.set(jdbc, teacherId, "TEACHER");
         return jdbc.queryForObject("SELECT class_session_id,manual_code,expires_at FROM issue_checkin_challenge(?,?)",
                 (rs,n) -> new QrResponse(rs.getLong(1),rs.getString(2),rs.getObject(3,OffsetDateTime.class)),
                 sessionId,teacherId);
@@ -32,9 +38,10 @@ public class QrAttendanceService {
 
     @Transactional
     public AttendanceResponse checkIn(CheckInRequest request, Long studentId) {
-        role(studentId, "STUDENT");
+        permission(studentId, "STUDENT", "CHECK_IN_QR");
         if (request.classSessionId() == null)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần mã buổi học để điểm danh.");
+        DbSessionIdentity.set(jdbc, studentId, "STUDENT");
         Long checkinId = jdbc.queryForObject("SELECT submit_class_checkin(?,?,'MANUAL_CODE',?)", Long.class,
                 request.classSessionId(),studentId,request.qrCode().trim());
         return jdbc.queryForObject("""
@@ -49,7 +56,8 @@ public class QrAttendanceService {
 
     @Transactional
     public void cancel(Long attendanceId, Long teacherId) {
-        role(teacherId, "TEACHER");
+        permission(teacherId, "TEACHER", "MANAGE_ATTENDANCE");
+        DbSessionIdentity.set(jdbc, teacherId, "TEACHER");
         List<long[]> rows = jdbc.query("SELECT class_session_id,user_id FROM attendance WHERE attendance_id=?",
                 (rs,n) -> new long[] {rs.getLong(1),rs.getLong(2)},attendanceId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance not found");
@@ -59,7 +67,8 @@ public class QrAttendanceService {
 
     @Transactional(readOnly = true)
     public List<AttendanceResponse> list(Long sessionId, Long teacherId) {
-        role(teacherId, "TEACHER");
+        permission(teacherId, "TEACHER", "VIEW_ATTENDANCE");
+        DbSessionIdentity.set(jdbc, teacherId, "TEACHER");
         Long owner = jdbc.queryForObject("SELECT b.user_id FROM class_sessions cs JOIN bookings b USING(booking_id) WHERE cs.class_session_id=?",
                 Long.class,sessionId);
         if (!teacherId.equals(owner)) throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your class session");
@@ -75,8 +84,66 @@ public class QrAttendanceService {
 
     @Transactional(readOnly = true)
     public List<Long> checkedInSessions(Long studentId) {
-        role(studentId, "STUDENT");
-        return jdbc.query("SELECT class_session_id FROM attendance WHERE user_id=? AND attendance_status='PRESENT'",
+        permission(studentId, "STUDENT", "VIEW_OWN_ATTENDANCE");
+        DbSessionIdentity.set(jdbc, studentId, "STUDENT");
+        return jdbc.query("SELECT class_session_id FROM own_attendance WHERE user_id=? AND attendance_status IN ('PRESENT','LATE')",
                 (rs,n) -> rs.getLong(1),studentId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AttendanceResponse> myAttendance(Long studentId) {
+        permission(studentId, "STUDENT", "VIEW_OWN_ATTENDANCE");
+        DbSessionIdentity.set(jdbc, studentId, "STUDENT");
+        return jdbc.query("""
+            SELECT a.attendance_id,a.class_session_id,a.user_id,sr.seat_id,s.seat_number,
+                   a.attendance_status,a.check_in_at,u.full_name
+            FROM own_attendance a
+            JOIN seat_reservations sr ON sr.seat_reservation_id=a.seat_reservation_id
+            JOIN seats s ON s.seat_id=sr.seat_id
+            JOIN users u ON u.user_id=a.user_id
+            WHERE a.user_id=? ORDER BY a.class_session_id DESC
+            """, (rs,n) -> attendance(rs),studentId);
+    }
+
+    @Transactional
+    public AttendanceResponse correct(Long attendanceId, CorrectionRequest request, Long teacherId) {
+        permission(teacherId, "TEACHER", "MANAGE_ATTENDANCE");
+        if (!List.of("PRESENT", "LATE", "ABSENT", "EXCUSED").contains(request.status())
+                || request.reason().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cần trạng thái hợp lệ và lý do điều chỉnh.");
+        }
+        List<Long> rows = jdbc.query("SELECT class_session_id FROM attendance WHERE attendance_id=?",
+                (rs,n) -> rs.getLong(1),attendanceId);
+        if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Attendance not found");
+        DbSessionIdentity.set(jdbc, teacherId, "TEACHER");
+        jdbc.queryForObject("SELECT attendance_id FROM correct_attendance(?,?,?)", Long.class,
+                attendanceId,request.status(),request.reason().trim());
+        return jdbc.queryForObject("""
+            SELECT a.attendance_id,a.class_session_id,a.user_id,sr.seat_id,s.seat_number,
+                   a.attendance_status,a.check_in_at,u.full_name
+            FROM attendance a JOIN seat_reservations sr ON sr.seat_reservation_id=a.seat_reservation_id
+            JOIN seats s ON s.seat_id=sr.seat_id JOIN users u ON u.user_id=a.user_id
+            WHERE a.attendance_id=?
+            """, (rs,n) -> attendance(rs),attendanceId);
+    }
+
+    @Transactional
+    public int finalizeAttendance(Long sessionId, Long teacherId) {
+        permission(teacherId, "TEACHER", "MANAGE_ATTENDANCE");
+        List<Long> owners = jdbc.query("""
+            SELECT b.user_id FROM class_sessions cs JOIN bookings b USING(booking_id)
+            WHERE cs.class_session_id=?
+            """, (rs,n) -> rs.getLong(1),sessionId);
+        if (owners.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Class session not found");
+        if (!teacherId.equals(owners.getFirst()))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Not your class session");
+        DbSessionIdentity.set(jdbc, teacherId, "TEACHER");
+        Integer markedAbsent = jdbc.queryForObject("SELECT finalize_class_attendance(?)", Integer.class,sessionId);
+        return markedAbsent == null ? 0 : markedAbsent;
+    }
+
+    private AttendanceResponse attendance(java.sql.ResultSet rs) throws java.sql.SQLException {
+        return new AttendanceResponse(rs.getLong(1),rs.getLong(2),rs.getLong(3),rs.getLong(4),
+                rs.getInt(5),rs.getString(6),rs.getObject(7,OffsetDateTime.class),rs.getString(8));
     }
 }
