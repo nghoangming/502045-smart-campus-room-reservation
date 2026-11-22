@@ -1,5 +1,6 @@
 package com.smartcampus.service;
 
+import com.smartcampus.auth.DbSessionIdentity;
 import com.smartcampus.dto.ReservationRequest;
 import com.smartcampus.dto.ReservationResponse;
 import com.smartcampus.entity.Booking;
@@ -163,6 +164,12 @@ public class ReservationService {
         if (!"PENDING".equals(booking.getStatus()) && !"CONFIRMED".equals(booking.getStatus())) {
             throw new IllegalArgumentException("Reservation " + id + " is not active");
         }
+        Boolean isAdmin = jdbc.queryForObject("""
+                SELECT EXISTS(SELECT 1 FROM user_roles ur JOIN roles r USING(role_id)
+                              WHERE ur.user_id=? AND r.role_name='ADMIN')
+                """, Boolean.class, actorId);
+        DbSessionIdentity.set(jdbc, actorId,
+                Boolean.TRUE.equals(isAdmin) ? "ADMIN" : "STUDY".equals(roomType) ? "STUDENT" : "TEACHER");
         return jdbc.queryForObject("SELECT booking_id,user_id,room_id,start_time,end_time,status,created_at FROM cancel_booking(?,?,?)",
                 (rs, row) -> responseFromRow(rs), id, actorId, null);
     }

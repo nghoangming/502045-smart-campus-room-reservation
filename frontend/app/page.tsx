@@ -1,13 +1,15 @@
 import { Header } from "@/components/header";
-import { HeroFinder } from "@/components/hero-finder";
+import { HeroIntro } from "@/components/hero-intro";
 import { CampusContent } from "@/components/campus-content";
+import { LandingReveal } from "@/components/landing-reveal";
 
 export default function Home() {
   return (
     <>
       <Header />
       <main>
-        <HeroFinder />
+        <LandingReveal />
+        <HeroIntro />
         <CampusContent />
       </main>
     </>

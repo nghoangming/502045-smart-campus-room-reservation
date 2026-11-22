@@ -24,6 +24,7 @@ public class GlobalExceptionHandler {
         if (cause instanceof SQLException sql) {
             String state = sql.getSQLState();
             HttpStatus status = "42501".equals(state) ? HttpStatus.FORBIDDEN
+                    : "P0002".equals(state) ? HttpStatus.NOT_FOUND
                     : "23505".equals(state) || "23P01".equals(state) ? HttpStatus.CONFLICT
                     : "23514".equals(state) ? HttpStatus.BAD_REQUEST : HttpStatus.INTERNAL_SERVER_ERROR;
             String message = status == HttpStatus.INTERNAL_SERVER_ERROR ? "Database request failed" : sql.getMessage();

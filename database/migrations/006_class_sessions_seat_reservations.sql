@@ -16,6 +16,7 @@ CREATE TABLE class_sessions (
     start_time TIMESTAMPTZ NOT NULL,
     end_time TIMESTAMPTZ NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    session_kind VARCHAR(12) NOT NULL DEFAULT 'REGULAR' CHECK (session_kind IN ('REGULAR','MAKEUP')),
     CONSTRAINT uq_class_sessions_booking UNIQUE (booking_id),
     CONSTRAINT uq_class_sessions_id_room UNIQUE (class_session_id, room_id),
     CONSTRAINT chk_class_sessions_course_code CHECK (btrim(course_code) <> ''),

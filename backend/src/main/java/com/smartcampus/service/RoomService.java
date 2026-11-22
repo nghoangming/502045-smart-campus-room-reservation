@@ -21,6 +21,8 @@ import java.util.stream.Collectors;
 @Service
 public class RoomService {
 
+    public record CapacityResponse(Long roomId, int installedSeats, int usableSeats) { }
+
     private static final ZoneId CAMPUS_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private final RoomRepository roomRepository;
@@ -40,6 +42,13 @@ public class RoomService {
 
     public RoomResponse getRoomById(Long id) {
         return toResponse(findRoom(id));
+    }
+
+    public CapacityResponse getCapacity(Long id) {
+        findRoom(id);
+        return jdbc.queryForObject("""
+            SELECT room_id,installed_seats,usable_seats FROM room_capacity WHERE room_id=?
+            """, (rs,n) -> new CapacityResponse(rs.getLong(1),rs.getInt(2),rs.getInt(3)),id);
     }
 
     public List<RoomScheduleResponse> getSchedule(Long roomId, LocalDate date) {
@@ -70,7 +79,7 @@ public class RoomService {
     }
 
     private RoomResponse toResponse(Room room) {
-        Integer capacity = jdbc.queryForObject("SELECT count(*) FROM seats WHERE room_id = ?", Integer.class, room.getId());
+        Integer capacity = jdbc.queryForObject("SELECT installed_seats FROM room_capacity WHERE room_id = ?", Integer.class, room.getId());
         return new RoomResponse(room.getId(), room.getCode(), room.getName(), room.getLocation(), room.getStatus(), room.getType(), capacity);
     }
 
@@ -80,7 +89,7 @@ public class RoomService {
     }
 
     private Map<Long, Integer> capacities() {
-        return jdbc.query("SELECT room_id, count(*) AS capacity FROM seats GROUP BY room_id",
+        return jdbc.query("SELECT room_id, installed_seats AS capacity FROM room_capacity",
                 rs -> {
                     Map<Long, Integer> values = new java.util.HashMap<>();
                     while (rs.next()) values.put(rs.getLong("room_id"), rs.getInt("capacity"));

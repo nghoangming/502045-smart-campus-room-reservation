@@ -15,8 +15,13 @@ public class NotificationController {
     public NotificationController(JdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     public record Notification(Long id, String title, String message, String type,
-                               Long bookingId, Long incidentId, boolean read, OffsetDateTime createdAt) { }
+                               Long bookingId, Long incidentId, boolean read, OffsetDateTime createdAt,
+                               String targetTab) { }
     public record MarkAllReadResult(int updatedCount) { }
+
+    static String targetTab(String type) {
+        return "ABSENCE".equals(type) ? "absences" : null;
+    }
 
     @GetMapping
     @Transactional(readOnly = true)
@@ -26,7 +31,7 @@ public class NotificationController {
             FROM notifications WHERE user_id=? ORDER BY created_at DESC,notification_id DESC
             """, (rs,n) -> new Notification(rs.getLong(1),rs.getString(2),rs.getString(3),
                 rs.getString(4),rs.getObject(5,Long.class),rs.getObject(6,Long.class),rs.getBoolean(7),
-                rs.getObject(8,OffsetDateTime.class)),userId);
+                rs.getObject(8,OffsetDateTime.class),targetTab(rs.getString(4))),userId);
     }
 
     @PatchMapping("/{id}/read")
@@ -38,7 +43,7 @@ public class NotificationController {
             RETURNING notification_id,title,message,notification_type,related_booking_id,related_incident_id,is_read,created_at
             """, (rs,n) -> new Notification(rs.getLong(1),rs.getString(2),rs.getString(3),
                 rs.getString(4),rs.getObject(5,Long.class),rs.getObject(6,Long.class),rs.getBoolean(7),
-                rs.getObject(8,OffsetDateTime.class)),id,userId);
+                rs.getObject(8,OffsetDateTime.class),targetTab(rs.getString(4))),id,userId);
         if (rows.isEmpty()) throw new ResponseStatusException(HttpStatus.NOT_FOUND,"Notification not found");
         return rows.getFirst();
     }

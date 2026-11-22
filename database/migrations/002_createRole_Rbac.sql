@@ -95,7 +95,6 @@ JOIN permissions p
     ON p.permission_name IN (
         'VIEW_OWN_SCHEDULE',
         'SELECT_SEAT',
-        'CHECK_IN_QR',
-        'REPORT_INCIDENT'
+        'CHECK_IN_QR'
     )
 WHERE r.role_name = 'STUDENT';

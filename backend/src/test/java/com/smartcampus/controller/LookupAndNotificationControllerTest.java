@@ -39,4 +39,10 @@ class LookupAndNotificationControllerTest {
         verify(jdbc, org.mockito.Mockito.times(2)).update(
                 org.mockito.ArgumentMatchers.contains("WHERE user_id=? AND is_read=FALSE"), eq(10L));
     }
+
+    @Test
+    void absenceNotificationOpensAbsenceWorkflow() {
+        assertEquals("absences", NotificationController.targetTab("ABSENCE"));
+        assertEquals(null, NotificationController.targetTab("BOOKING"));
+    }
 }

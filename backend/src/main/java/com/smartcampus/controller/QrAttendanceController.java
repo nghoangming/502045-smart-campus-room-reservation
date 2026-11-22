@@ -16,6 +16,8 @@ public class QrAttendanceController {
 
     public record QrResponse(Long classSessionId, String token, OffsetDateTime expiresAt) { }
     public record CheckInRequest(@NotBlank String qrCode, Long classSessionId) { }
+    public record CorrectionRequest(@NotBlank String status, @NotBlank String reason) { }
+    public record FinalizeResponse(Long classSessionId, int markedAbsent) { }
     public record AttendanceResponse(Long id, Long classSessionId, Long userId, Long seatId,
                                      Integer seatNumber, String status, OffsetDateTime checkedInAt, String studentName) { }
 
@@ -42,6 +44,25 @@ public class QrAttendanceController {
     public List<Long> checkedInSessions(
             @RequestAttribute("authenticatedUserId") Long userId) {
         return service.checkedInSessions(userId);
+    }
+
+    @GetMapping("/attendance/mine/details")
+    public List<AttendanceResponse> myAttendance(
+            @RequestAttribute("authenticatedUserId") Long userId) {
+        return service.myAttendance(userId);
+    }
+
+    @PatchMapping("/attendance/{id}/status")
+    public AttendanceResponse correct(@PathVariable Long id,
+            @Valid @RequestBody CorrectionRequest request,
+            @RequestAttribute("authenticatedUserId") Long userId) {
+        return service.correct(id, request, userId);
+    }
+
+    @PostMapping("/class-sessions/{id}/attendance/finalize")
+    public FinalizeResponse finalizeAttendance(@PathVariable Long id,
+            @RequestAttribute("authenticatedUserId") Long userId) {
+        return new FinalizeResponse(id, service.finalizeAttendance(id, userId));
     }
 
     @DeleteMapping("/attendance/{id}")

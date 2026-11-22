@@ -22,6 +22,19 @@ CHECK (
     status IN ('OPEN', 'IN_PROGRESS', 'RESOLVED', 'REJECTED')
 );
 
+CREATE FUNCTION guard_incident_transition() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.status IS NOT DISTINCT FROM OLD.status THEN RETURN NEW; END IF;
+ IF OLD.status NOT IN ('OPEN','IN_PROGRESS') OR
+    (OLD.status='IN_PROGRESS' AND NEW.status NOT IN ('RESOLVED','REJECTED')) OR
+    (OLD.status='OPEN' AND NEW.status NOT IN ('IN_PROGRESS','RESOLVED','REJECTED')) THEN
+   RAISE EXCEPTION 'Invalid incident status transition' USING ERRCODE='23514';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER trg_guard_incident_transition BEFORE UPDATE OF status ON incidents
+FOR EACH ROW EXECUTE FUNCTION guard_incident_transition();
+
 CREATE INDEX IF NOT EXISTS idx_incidents_status
 ON incidents(status);
 
@@ -53,6 +66,18 @@ ALTER TABLE notifications
 ADD CONSTRAINT fk_notifications_booking
 FOREIGN KEY (related_booking_id)
 REFERENCES bookings(booking_id);
+
+CREATE FUNCTION notify_incident_status() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public,pg_temp AS $$
+BEGIN
+ INSERT INTO notifications(user_id,title,message,notification_type,related_incident_id)
+ VALUES (NEW.reported_by,'Cập nhật báo cáo sự cố',
+   'Báo cáo sự cố đã chuyển sang trạng thái ' || NEW.status || '.', 'INCIDENT',NEW.incident_id);
+ RETURN NEW;
+END $$;
+CREATE TRIGGER trg_notify_incident_status AFTER UPDATE OF status ON incidents
+FOR EACH ROW WHEN (OLD.status IS DISTINCT FROM NEW.status)
+EXECUTE FUNCTION notify_incident_status();
 
 --Tạo index cho notification
 CREATE INDEX IF NOT EXISTS idx_notifications_user_created

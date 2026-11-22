@@ -23,6 +23,8 @@ ALTER TABLE checkins
 ALTER TABLE attendance
     ADD COLUMN class_session_id BIGINT,
     ADD COLUMN seat_reservation_id BIGINT,
+    ADD COLUMN cancelled_at TIMESTAMPTZ,
+    ADD COLUMN cancelled_by BIGINT REFERENCES users(user_id),
     ADD COLUMN evaluated_by BIGINT,
     ADD COLUMN evaluation_note TEXT,
     ADD COLUMN created_at TIMESTAMPTZ NOT NULL
@@ -162,6 +164,8 @@ ALTER TABLE attendance
         FOREIGN KEY (evaluated_by)
         REFERENCES users (user_id);
 
+
+ALTER TABLE attendance ADD CONSTRAINT chk_attendance_cancellation CHECK (cancelled_at IS NULL OR cancelled_by IS NOT NULL);
 
 -- 7. Prevent duplicate attendance per student per session
 ALTER TABLE attendance

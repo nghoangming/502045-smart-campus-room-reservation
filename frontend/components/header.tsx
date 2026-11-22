@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ArrowRight, Building2, Menu, X } from "lucide-react";
 
 const links = [
-  ["Tra cứu phòng", "#tra-cuu"], ["Không gian học tập", "#khong-gian"],
+  ["Giới thiệu", "#gioi-thieu"], ["Không gian học tập", "#khong-gian"],
   ["Quy trình đặt chỗ", "#quy-trinh"], ["Bản đồ khuôn viên", "#ban-do"], ["Hỗ trợ", "#ho-tro"],
 ];
 
