@@ -1,15 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
 
 export default function ActivatePage() {
-  const [token, setToken] = useState("");
+  const token = useSyncExternalStore(() => () => {},
+    () => new URLSearchParams(window.location.search).get("token") ?? "", () => "");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [done, setDone] = useState(false);
   const [busy, setBusy] = useState(false);
-  useEffect(() => { setToken(new URLSearchParams(window.location.search).get("token") ?? ""); }, []);
   const activate = async (event: React.FormEvent) => {
     event.preventDefault(); setBusy(true); setMessage("");
     try {

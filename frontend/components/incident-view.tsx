@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, RefreshCw, Wrench } from "lucide-react";
+import { ArrowRight, RefreshCw } from "lucide-react";
 import { campusApi, type ApiIncident } from "@/lib/campus-api";
 import type { Incident } from "@/lib/admin-data";
 import type { WorkspaceContext } from "@/lib/workspace-types";

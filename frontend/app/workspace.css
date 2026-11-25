@@ -1534,7 +1534,8 @@
 
 .auth-visual {
   position: relative;
-  background: #112d46 url('/campus-hero.png') center/cover;
+  --auth-hero-red: #e65b68;
+  background: #102a43 url('/campus-hero.png') center 49%/cover;
   min-height: 100vh;
   color: #fff;
   isolation: isolate
@@ -1544,11 +1545,13 @@
   position: absolute;
   inset: 0;
   z-index: -1;
-  background: linear-gradient(180deg, #10283e88 0%, #10283e88 35%, #0d263fed 100%)
+  background: linear-gradient(0deg, rgba(9, 33, 55, .94), rgba(9, 33, 55, .14) 70%), linear-gradient(90deg, rgba(9, 33, 55, .96) 0%, rgba(9, 33, 55, .8) 52%, rgba(10, 34, 55, .48) 100%)
 }
 
 .auth-visual-content {
-  height: 100%;
+  position: sticky;
+  top: 0;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -1556,7 +1559,7 @@
 }
 
 .auth-back {
-  font-size: 13px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
   display: flex;
@@ -1565,45 +1568,33 @@
 }
 
 .auth-visual-bottom {
-  max-width: 520px
+  max-width: 620px
 }
 
 .auth-visual-bottom .eyebrow {
-  color: #f3a7b7;
-  font-size: 11px
+  color: #ffd1d5;
+  font-size: 14px;
+  line-height: 1.5;
+  letter-spacing: 1.6px
 }
 
 .auth-visual-bottom h1 {
-  font: 800 clamp(38px, 4.5vw, 65px)/1.17 'Inter', sans-serif;
-  letter-spacing: -2.5px;
-  margin: 18px 0
+  font: 800 clamp(42px, 4.8vw, 68px)/1.14 'Inter', sans-serif;
+  letter-spacing: -2.8px;
+  margin: 20px 0 18px
 }
 
 .auth-visual-bottom h1 em {
   font-style: normal;
-  color: #ec6a7e
+  color: var(--auth-hero-red)
 }
 
 .auth-visual-bottom p {
-  font-size: 13px;
-  color: #d1dce4;
-  line-height: 1.8;
-  max-width: 410px
-}
-
-.auth-visual-rule {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  margin-top: 42px;
-  color: #e3b3bd;
-  font-size: 12px
-}
-
-.auth-visual-rule div {
-  height: 1px;
-  width: 85px;
-  background: #e4a8b688
+  font-size: 18px;
+  color: #e5edf2;
+  line-height: 1.7;
+  max-width: 580px;
+  margin: 0
 }
 
 .auth-form-side {
@@ -1620,26 +1611,28 @@
   margin: auto
 }
 
-.auth-kicker {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  color: var(--w-red);
-  display: flex;
-  align-items: center;
-  gap: 8px
+.auth-action-page {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 24px;
+  background: var(--page-bg, #e7f0f4)
 }
 
-.auth-kicker>span {
-  height: 2px;
-  width: 17px;
-  background: var(--w-red)
+.auth-action-card {
+  width: min(100%, 520px);
+  padding: 36px;
+  background: #fff;
+  border-radius: 18px
 }
+
+.auth-action-card h1 { margin: 20px 0 8px }
+.auth-action-card p { line-height: 1.6 }
 
 .auth-form-wrap h2 {
   font: 800 28px 'Inter', sans-serif;
   letter-spacing: -1.2px;
-  margin: 14px 0 8px
+  margin: 0 0 8px
 }
 
 .auth-subtitle {
@@ -4570,14 +4563,10 @@
     width: min(100%, 560px)
   }
 
-  .auth-kicker {
-    font-size: 12px
-  }
-
   .auth-form-wrap h2 {
     font-size: 36px;
     line-height: 1.2;
-    margin: 17px 0 10px
+    margin: 0 0 10px
   }
 
   .auth-subtitle {
@@ -9945,6 +9934,154 @@
 
   .ws-room-seat-legend {
     padding: 12px 16px;
+  }
+}
+
+/* Portal lists: readable rows with the same density across roles. */
+.ws-root .ws-absence-list > .ws-panel-header h3,
+.ws-root .ws-incident-page > .ws-panel > .ws-panel-header h3,
+.ws-root .ws-student-booking-history > .ws-panel-header h3,
+.ws-root .ws-attendance-workflow > .ws-panel-header h3,
+.ws-root .ws-booking-layout > .ws-panel > .ws-panel-header h3 {
+  font-size: 19px;
+}
+
+.ws-root .ws-table th {
+  padding: 12px 17px;
+  color: #446479;
+  font-size: 12px;
+  letter-spacing: .06em;
+}
+
+.ws-root .ws-table td {
+  padding: 14px 17px;
+  color: #36566a;
+  font-size: 14px;
+  line-height: 1.45;
+  vertical-align: middle;
+}
+
+.ws-root .ws-table td strong {
+  color: #17384d;
+  font-size: 15px;
+}
+
+.ws-root .ws-table td small {
+  margin-top: 3px;
+  color: #607d8e;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.ws-root .ws-table .ws-row-action {
+  font-size: 14px;
+  font-weight: 750;
+}
+
+.ws-root .ws-activity {
+  padding: 4px 20px 7px;
+}
+
+.ws-root .ws-activity-row {
+  gap: 12px;
+  padding: 13px 0;
+}
+
+.ws-root .ws-activity-row strong {
+  font-size: 15px;
+}
+
+.ws-root .ws-activity-row small {
+  color: #607d8e;
+  font-size: 13px;
+}
+
+.ws-root .ws-calendar-class {
+  min-height: 100px;
+  gap: 16px;
+  padding: 15px 18px;
+}
+
+.ws-root .ws-student-history-list {
+  padding: 6px 20px;
+}
+
+.ws-root .ws-student-history-list > div {
+  padding: 13px 0;
+}
+
+.ws-root .ws-student-history-list small {
+  color: #607d8e;
+}
+
+.ws-root .ws-absence-items,
+.ws-root .ws-incident-list {
+  gap: 10px;
+  padding: 16px 20px;
+}
+
+.ws-root .ws-absence-item,
+.ws-root .ws-incident-card {
+  gap: 16px;
+  padding: 16px 18px;
+}
+
+.ws-role-teacher .ws-incident-card {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.ws-role-teacher .ws-incident-card-side {
+  justify-items: end;
+}
+
+.ws-root .ws-absence-item-main {
+  gap: 7px;
+}
+
+.ws-root .ws-absence-item-main > small,
+.ws-root .ws-incident-card-main small {
+  color: #607d8e;
+  font-size: 13px;
+}
+
+.ws-root .ws-absence-empty,
+.ws-root .ws-incident-list > .ws-notification-empty {
+  padding: 22px;
+  font-size: 14px;
+}
+
+.ws-root .ws-absence-list .ws-pagination {
+  margin: 0 20px 16px;
+  padding: 10px 12px;
+  border: 1px solid #d1e1e8;
+  border-radius: 9px;
+}
+
+@media (max-width: 720px) {
+  .ws-role-teacher .ws-incident-card {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-role-teacher .ws-incident-card-side {
+    justify-items: start;
+  }
+}
+
+@media (max-width: 650px) {
+  .ws-root .ws-absence-items,
+  .ws-root .ws-incident-list {
+    padding: 13px;
+  }
+
+  .ws-root .ws-absence-item,
+  .ws-root .ws-incident-card {
+    padding: 14px;
+  }
+
+  .ws-root .ws-calendar-class {
+    min-height: 0;
+    gap: 12px;
+    padding: 13px 14px;
   }
 }
 

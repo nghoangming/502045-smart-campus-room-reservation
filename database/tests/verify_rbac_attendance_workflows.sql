@@ -7,6 +7,7 @@ BEGIN
  SELECT user_id INTO STRICT t FROM users WHERE user_code='teacher';
  SELECT user_id INTO STRICT s FROM users WHERE user_code='student';
  SELECT user_id INTO STRICT ad FROM users WHERE user_code='admin';
+ UPDATE users SET faculty_code='A' WHERE user_id IN (t,s);
  IF NOT EXISTS (SELECT 1 FROM roles JOIN role_permissions USING(role_id) JOIN permissions USING(permission_id)
  WHERE role_name='STUDENT' AND permission_name='CREATE_BOOKING') THEN RAISE EXCEPTION 'Missing student booking permission'; END IF;
  INSERT INTO rooms(room_code,name,status) VALUES('A-021','Workflow test','ACTIVE') RETURNING room_id INTO r;
@@ -18,7 +19,10 @@ BEGIN
  INSERT INTO bookings(user_id,room_id,start_time,end_time)
  VALUES(t,r,clock_timestamp()-interval '16 minutes',clock_timestamp()+interval '1 hour') RETURNING booking_id INTO b;
  PERFORM set_config('app.user_id',ad::text,true); PERFORM set_config('app.role','ADMIN',true);
- c:=approve_class_booking(b,'TEST021','Workflow test');
+ PERFORM review_booking(b,ad,true);
+ INSERT INTO class_sessions(booking_id,course_code,title,room_id,start_time,end_time)
+ SELECT booking_id,'TEST021','Workflow test',room_id,start_time,end_time
+ FROM bookings WHERE booking_id=b RETURNING * INTO c;
  sr:=hold_class_seat(c.class_session_id,chair,s);
  sr:=confirm_class_seat(sr.seat_reservation_id,s);
  PERFORM set_config('app.user_id',t::text,true); PERFORM set_config('app.role','TEACHER',true);
@@ -58,7 +62,10 @@ BEGIN
  PERFORM cancel_booking(b,ad,'Administrative exception');
  INSERT INTO bookings(user_id,room_id,start_time,end_time)
  VALUES(t,r,now()-interval '1 day',now()-interval '22 hours') RETURNING booking_id INTO b;
- c:=approve_class_booking(b,'PAST021','Closed class');
+ PERFORM review_booking(b,ad,true);
+ INSERT INTO class_sessions(booking_id,course_code,title,room_id,start_time,end_time)
+ SELECT booking_id,'PAST021','Closed class',room_id,start_time,end_time
+ FROM bookings WHERE booking_id=b RETURNING * INTO c;
  sr:=hold_class_seat(c.class_session_id,chair,s);
  sr:=confirm_class_seat(sr.seat_reservation_id,s);
  PERFORM set_config('app.user_id',t::text,true); PERFORM set_config('app.role','TEACHER',true);

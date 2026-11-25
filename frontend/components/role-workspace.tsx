@@ -4,8 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import useSWR, { useSWRConfig } from "swr";
-import { ArrowRight, Bell, BookOpen, Building2, CalendarDays, Check, ChevronDown, CircleAlert, ClipboardCheck, DoorOpen, LayoutDashboard, LogOut, Menu, QrCode, Search, ShieldCheck, Trash2, UserRoundX, UsersRound, Wrench, X } from "lucide-react";
-import { demoAuth, rolePath, type DemoAccount, type Role } from "@/lib/demo-auth";
+import { ArrowRight, Bell, Building2, CalendarDays, Check, ChevronDown, CircleAlert, ClipboardCheck, DoorOpen, LayoutDashboard, LogOut, Menu, QrCode, Search, ShieldCheck, Trash2, UserRoundX, UsersRound, Wrench, X } from "lucide-react";
+import { demoAuth, type DemoAccount, type Role } from "@/lib/demo-auth";
 import { campusApi } from "@/lib/campus-api";
 import type { WorkspaceContext, WorkspaceData } from "@/lib/workspace-types";
 import { roleName } from "@/lib/workspace-types";
@@ -53,9 +53,9 @@ export function RoleWorkspace({ role }: { role: Role }) {
     const equipment: WorkspaceData["equipment"] = apiResources.map(item => ({ id: item.id, roomId: item.roomId, name: item.name, type: item.type, quantity: item.quantity, status: item.status === "AVAILABLE" ? "Tốt" : item.status === "IN_USE" ? "Đang sử dụng" : item.status === "MAINTENANCE" ? "Bảo trì" : "Cần kiểm tra" }));
     return { rooms, reservations, seats, incidents, sessions, users: users.map(user => ({ ...user, status: user.verified ? "ACTIVE" as const : "INACTIVE" as const })), equipment };
   }, { revalidateOnMount: true, revalidateOnFocus: true, refreshInterval: 30000 });
-  useEffect(() => { const current = demoAuth.current(); setAccount(current); setChecked(true); if (!current) router.replace(role === "ADMIN" ? "/admin/login" : "/login"); else if (current.role !== role) router.replace("/forbidden"); }, [role, router]);
-  useEffect(() => { setEdits({}); }, [role, account?.id]);
-  useEffect(() => { if (source) setEdits({}); }, [source]);
+  useEffect(() => { const timer = setTimeout(() => { const current = demoAuth.current(); setAccount(current); setChecked(true); if (!current) router.replace(role === "ADMIN" ? "/admin/login" : "/login"); else if (current.role !== role) router.replace("/forbidden"); }, 0); return () => clearTimeout(timer); }, [role, router]);
+  useEffect(() => { const timer = setTimeout(() => setEdits({}), 0); return () => clearTimeout(timer); }, [role, account?.id]);
+  useEffect(() => { if (!source) return; const timer = setTimeout(() => setEdits({}), 0); return () => clearTimeout(timer); }, [source]);
   useEffect(() => {
     if (!notificationOpen) return;
     const onPointerDown = (event: PointerEvent) => {

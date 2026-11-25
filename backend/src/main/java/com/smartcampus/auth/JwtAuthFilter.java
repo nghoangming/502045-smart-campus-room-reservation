@@ -18,6 +18,8 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
         return !path.startsWith("/api/v1/") || path.equals("/api/v1/auth/login") || path.equals("/api/v1/auth/activate")
+                || path.equals("/api/v1/auth/verify-personal-email")
+                || path.equals("/api/v1/auth/forgot-password") || path.equals("/api/v1/auth/reset-password")
                 || path.equals("/api/v1/health")
                 || (path.equals("/api/v1/rooms/availability") && "GET".equals(request.getMethod()));
     }

@@ -1,5 +1,7 @@
 # Đối chiếu các ghi chú RBAC và nghiệp vụ
 
+> Báo cáo lịch sử tại ngày 12/11/2026. Các nhận định về hai bộ migration và những chức năng chưa có không phản ánh bộ `database/migrations/001`–`024` hiện tại. Tra cứu `database/README.md` và `docs/architecture/openapi-spec.yaml` để xem trạng thái triển khai mới; các kết luận bên dưới chỉ có giá trị cho mã nguồn đã rà tại thời điểm ghi báo cáo.
+
 Ngày rà soát: 12/11/2026. Phương pháp: đọc mã nguồn, chưa chạy DB hoặc kiểm thử HTTP trong lượt này. Đối chiếu cả `database/migrations` (001–016) và `db-sync/migrations` (001–020); không coi hai bộ là tương đương hoặc suy ra DB thật đã áp dụng bản mới.
 
 Các mã FR/UC dưới đây lấy từ ảnh người dùng cung cấp. `docs/requirements/SRS.md` và `docs/modelling/use-case.md` hiện rỗng, nên chưa thể xác nhận nguyên văn yêu cầu hay khẳng định mọi khác biệt là vi phạm SRS.

@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
@@ -17,12 +18,14 @@ public class JwtService {
     private static final Base64.Decoder DECODER = Base64.getUrlDecoder();
     private final byte[] secret;
     private final ObjectMapper mapper;
+    private final JdbcTemplate jdbc;
 
-    public JwtService(@Value("${app.jwt.secret}") String secret, ObjectMapper mapper) {
+    public JwtService(@Value("${app.jwt.secret}") String secret, ObjectMapper mapper, JdbcTemplate jdbc) {
         if (secret.getBytes(StandardCharsets.UTF_8).length < 32)
             throw new IllegalArgumentException("JWT_SECRET must contain at least 32 UTF-8 bytes");
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
         this.mapper = mapper;
+        this.jdbc = jdbc;
     }
 
     public record IssuedToken(String value, Instant expiresAt) { }
@@ -30,7 +33,8 @@ public class JwtService {
     public IssuedToken issue(long userId) {
         Instant expiresAt = Instant.now().plusSeconds(3600);
         String header = encode("{\"alg\":\"HS256\",\"typ\":\"JWT\"}");
-        String payload = encode("{\"sub\":\"" + userId + "\",\"iss\":\"smart-campus\",\"exp\":" + expiresAt.getEpochSecond() + "}");
+        Integer version = jdbc.queryForObject("SELECT auth_version FROM users WHERE user_id=?", Integer.class, userId);
+        String payload = encode("{\"sub\":\"" + userId + "\",\"iss\":\"smart-campus\",\"exp\":" + expiresAt.getEpochSecond() + ",\"ver\":" + version + "}");
         String signed = header + "." + payload;
         return new IssuedToken(signed + "." + ENCODER.encodeToString(sign(signed)), expiresAt);
     }
@@ -46,7 +50,11 @@ public class JwtService {
                 throw new IllegalArgumentException("Invalid JWT claims");
             long expiry = ((Number) claims.get("exp")).longValue();
             if (Instant.now().getEpochSecond() >= expiry) throw new IllegalArgumentException("JWT expired");
-            return Long.parseLong((String) claims.get("sub"));
+            long userId = Long.parseLong((String) claims.get("sub"));
+            Integer version = jdbc.queryForObject("SELECT auth_version FROM users WHERE user_id=?", Integer.class, userId);
+            if (version == null || !version.equals(((Number) claims.get("ver")).intValue()))
+                throw new IllegalArgumentException("JWT revoked");
+            return userId;
         } catch (Exception ex) {
             throw new IllegalArgumentException("Invalid or expired token", ex);
         }

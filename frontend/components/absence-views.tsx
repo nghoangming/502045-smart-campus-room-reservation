@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import useSWR from "swr";
 import { ArrowRight, CalendarDays, Clock3, RefreshCw, UserRoundX } from "lucide-react";
 import { campusApi, type ApiAbsenceRequest } from "@/lib/campus-api";
@@ -22,6 +22,8 @@ export function AbsenceView({ context: c, choices = [] }: { context: WorkspaceCo
   const [filter, setFilter] = useState<"PENDING" | "ALL">("PENDING");
   const [page, setPage] = useState(1);
   const [busy, setBusy] = useState(false);
+  const [now, setNow] = useState(0);
+  useEffect(() => { const initial = setTimeout(() => setNow(Date.now()), 0); const timer = setInterval(() => setNow(Date.now()), 30000); return () => { clearTimeout(initial); clearInterval(timer); }; }, []);
   const { data: requests = [], error: loadError, isLoading, mutate } = useSWR(
     ["absence-requests", c.role, c.account.id], campusApi.absenceRequests,
     { revalidateOnFocus: true, refreshInterval: 30000 },
@@ -35,15 +37,14 @@ export function AbsenceView({ context: c, choices = [] }: { context: WorkspaceCo
   const visible = relevant.filter(request => isStudent || filter === "ALL" || request.status === "PENDING");
   const currentPage = Math.min(page, Math.max(1, Math.ceil(visible.length / 5)));
   const pageItems = visible.slice((currentPage - 1) * 5, currentPage * 5);
-  const now = Date.now();
-  const eligible = isStudent ? c.data.sessions.filter(session =>
+  const eligible = isStudent && now > 0 ? c.data.sessions.filter(session =>
     choices.some(choice => choice.sessionId === session.id)
     && session.calendarStatus !== "ABSENT"
     && new Date(session.startTime).getTime() - now >= 15 * 60_000
     && !relevant.some(request => request.classSessionId === session.id && ["PENDING", "APPROVED"].includes(request.status)),
   ).sort((a, b) => a.startTime.localeCompare(b.startTime)) : [];
   const chosenSessionId = eligible.some(session => session.id === sessionId) ? sessionId : eligible[0]?.id ?? 0;
-  const teacherEligible = isTeacher ? c.data.sessions.filter(session =>
+  const teacherEligible = isTeacher && now > 0 ? c.data.sessions.filter(session =>
     session.teacherId === c.account.id
     && c.data.reservations.some(booking => booking.id === session.bookingId && booking.status === "CONFIRMED")
     && session.calendarStatus !== "ABSENT" && session.calendarStatus !== "ABSENCE_PENDING"
