@@ -7,6 +7,7 @@ BEGIN
  SELECT user_id INTO STRICT t FROM users WHERE user_code='teacher';
  SELECT user_id INTO STRICT s FROM users WHERE user_code='student';
  SELECT user_id INTO STRICT admin_id FROM users WHERE user_code='admin';
+ UPDATE users SET faculty_code='A' WHERE user_id IN (t,s);
  INSERT INTO users(user_code,full_name,email,password_hash,faculty_code)
  VALUES('lifecycle-teacher','Teacher 2','lifecycle-t@test.invalid','test','A') RETURNING user_id INTO t2;
  INSERT INTO user_roles SELECT t2,role_id FROM roles WHERE role_name='TEACHER';
@@ -73,8 +74,11 @@ BEGIN
    RAISE EXCEPTION 'TEST: cancelled class offers seats'; END IF;
  PERFORM set_config('app.user_id',s::text,true);
  PERFORM set_config('app.role','STUDENT',true);
- IF (SELECT calendar_status FROM student_faculty_calendar WHERE class_session_id=c1) IS DISTINCT FROM 'CANCELLED' THEN
-   RAISE EXCEPTION 'TEST: student calendar lost cancellation status'; END IF;
+ IF EXISTS (SELECT 1 FROM student_faculty_calendar WHERE class_session_id=c1) THEN
+   RAISE EXCEPTION 'TEST: cancelled class remains on student calendar'; END IF;
+ IF NOT EXISTS (SELECT 1 FROM student_faculty_calendar
+     WHERE class_session_id=c2 AND calendar_status='SCHEDULED') THEN
+   RAISE EXCEPTION 'TEST: active class missing from student calendar'; END IF;
  PERFORM cancel_booking(b1,t); -- Idempotent cancellation.
  BEGIN
    UPDATE bookings SET status='CONFIRMED' WHERE booking_id=b1;

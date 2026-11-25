@@ -5,11 +5,15 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import tools.jackson.databind.ObjectMapper;
 
 class JwtServiceTest {
-    private final JwtService jwt = new JwtService("test-secret-with-at-least-thirty-two-characters", new ObjectMapper());
+    private final JdbcTemplate jdbc = new JdbcTemplate() {
+        @Override public <T> T queryForObject(String sql, Class<T> type, Object... args) { return type.cast(0); }
+    };
+    private final JwtService jwt = new JwtService("test-secret-with-at-least-thirty-two-characters", new ObjectMapper(), jdbc);
 
     @Test
     void issuedTokenIdentifiesUserAndRejectsTampering() {

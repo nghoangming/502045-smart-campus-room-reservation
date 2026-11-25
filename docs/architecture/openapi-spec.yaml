@@ -1,8 +1,8 @@
 openapi: "3.1.0"
 info:
   title: "Smart Campus API"
-  version: "2.0.0"
-  description: "Contract synchronized with the private Spring Boot backend. x-implementation-status distinguishes implemented operations from retained future ideas. Except public operations, requests require Bearer JWT. Student timetable is scoped by faculty, not individual course enrollment."
+  version: "2.1.0"
+  description: "Contract for the Spring Boot backend and migrations 001-024. x-implementation-status distinguishes implemented operations from retained future ideas. Except public operations, requests require Bearer JWT. Student timetable is scoped by faculty, not individual course enrollment."
 servers:
   - url: "http://localhost:8080/api/v1"
 security:
@@ -94,6 +94,55 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /auth/forgot-password:
+    post:
+      tags: ["Authentication"]
+      summary: "Request password reset using a verified personal email"
+      x-implementation-status: "implemented"
+      description: "Returns 204 even when the address has no matching verified account. A single-use link is sent when eligible; requests are throttled per account for two minutes."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+      responses:
+        "204": { description: "Request accepted without disclosing account existence" }
+        "503": { description: "Mail delivery unavailable" }
+  /auth/reset-password:
+    post:
+      tags: ["Authentication"]
+      summary: "Set a new password with a single-use reset token"
+      x-implementation-status: "implemented"
+      description: "Token expires after one hour. Revokes previously issued JWTs by incrementing auth_version."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+      responses:
+        "204": { description: "Password changed; sign in again" }
+        "400": { description: "Invalid or expired token or password shorter than eight characters" }
+  /auth/verify-personal-email:
+    post:
+      tags: ["Authentication"]
+      summary: "Confirm the new personal email from a single-use link"
+      x-implementation-status: "implemented"
+      description: "The verified address replaces the previous personal email only after this request succeeds. Link expires after 24 hours."
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TokenRequest"
+      responses:
+        "204": { description: "Personal email updated" }
+        "400": { description: "Invalid or expired token" }
+        "409": { description: "Email is already verified for another account" }
   /admin/invitations:
     post:
       tags:
@@ -249,12 +298,31 @@ paths:
             "application/json":
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+  /users/me/personal-email-change:
+    post:
+      tags: ["Accounts"]
+      summary: "Request a verified change of personal email"
+      x-implementation-status: "implemented"
+      description: "Requires current password. Sends a 24-hour single-use confirmation link to the new address; the stored address remains unchanged until confirmation."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PersonalEmailChangeRequest"
+      responses:
+        "204": { description: "Confirmation email sent" }
+        "400": { description: "Invalid email, same email or incorrect password" }
+        "401": { description: "Authentication required" }
+        "409": { description: "Email already verified for another account" }
+        "503": { description: "Mail delivery unavailable" }
   /users/me/password:
     post:
       tags:
         - "Accounts"
       summary: "Change own password"
       x-implementation-status: "implemented"
+      description: "Requires current password; previously issued JWTs are revoked after the change."
       requestBody:
         required: true
         content:
@@ -752,13 +820,21 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
     delete:
       tags:
-        - "Planned"
-      summary: "Room deletion is not implemented"
-      x-implementation-status: "planned"
-      description: "Not exposed by the current backend. Room deletion is not implemented"
+        - "Rooms"
+      summary: "Delete a room (admin)"
+      x-implementation-status: "implemented"
+      description: "Calls the room deletion workflow; business constraints can prevent deletion of a room with dependent history."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema: { type: integer, format: int64 }
       responses:
-        "404":
-          description: "No matching backend endpoint"
+        "204": { description: "Room deleted" }
+        "401": { description: "Authentication required" }
+        "403": { description: "Admin role required" }
+        "404": { description: "Room not found" }
+        "409": { description: "Room has protected dependent records" }
   /rooms/{id}/schedule:
     get:
       tags:
@@ -2672,13 +2748,21 @@ paths:
           description: "No matching backend endpoint"
     delete:
       tags:
-        - "Planned"
-      summary: "Resource deletion is not implemented"
-      x-implementation-status: "planned"
-      description: "Not exposed by the current backend. Resource deletion is not implemented"
+        - "Resources"
+      summary: "Delete room resource (admin)"
+      x-implementation-status: "implemented"
+      description: "Uses delete_room_resource in the database; protected dependent records may prevent deletion."
+      parameters:
+        - name: "id"
+          in: "path"
+          required: true
+          schema: { type: integer, format: int64 }
       responses:
-        "404":
-          description: "No matching backend endpoint"
+        "204": { description: "Resource deleted" }
+        "401": { description: "Authentication required" }
+        "403": { description: "Admin role required" }
+        "404": { description: "Resource not found" }
+        "409": { description: "Resource has protected dependent records" }
   /notifications:
     get:
       tags:
@@ -2927,6 +3011,28 @@ components:
       required:
         - "token"
         - "password"
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        personalEmail: { type: string, format: email, maxLength: 100 }
+      required: [personalEmail]
+    ResetPasswordRequest:
+      type: object
+      properties:
+        token: { type: string }
+        password: { type: string, minLength: 8 }
+      required: [token, password]
+    TokenRequest:
+      type: object
+      properties:
+        token: { type: string }
+      required: [token]
+    PersonalEmailChangeRequest:
+      type: object
+      properties:
+        email: { type: string, format: email, maxLength: 100 }
+        currentPassword: { type: string }
+      required: [email, currentPassword]
     InviteRequest:
       type: "object"
       properties:
@@ -2992,6 +3098,9 @@ components:
           type: "string"
         personalEmail:
           type: "string"
+          format: "email"
+        personalEmailVerified:
+          type: "boolean"
         className:
           type: "string"
         entryYear:
@@ -3019,8 +3128,6 @@ components:
           type: "string"
           format: "date"
         phone:
-          type: "string"
-        personalEmail:
           type: "string"
         className:
           type: "string"

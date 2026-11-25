@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ArrowRight, X } from "lucide-react";
 import type { WorkspaceContext } from "@/lib/workspace-types";
 import { SessionStatus, SessionStatusLegend } from "@/components/session-status";
@@ -17,6 +17,8 @@ export function TeacherSchedule({ context: c }: { context: WorkspaceContext }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
   const [weekDate, setWeekDate] = useState<string | null>(null);
+  const [now, setNow] = useState(0);
+  useEffect(() => { const initial = setTimeout(() => setNow(Date.now()), 0); const timer = setInterval(() => setNow(Date.now()), 30000); return () => { clearTimeout(initial); clearInterval(timer); }; }, []);
   const today = dateKey(new Date().toISOString());
   const todayUtc = new Date(`${weekDate ?? today}T00:00:00Z`);
   const monday = new Date(todayUtc);
@@ -43,7 +45,7 @@ export function TeacherSchedule({ context: c }: { context: WorkspaceContext }) {
       <span className="ws-calendar-subject"><small>{session.className === "DEMO" ? "BUỔI DẠY" : session.className}</small><strong>{session.subject}</strong><em>Phòng {session.roomCode}</em><SessionStatus status={session.calendarStatus} teacher /></span>
       <ArrowRight size={18} />
     </button>
-    {approved && session.calendarStatus !== "ABSENT" && session.calendarStatus !== "ABSENCE_PENDING" && new Date(session.startTime).getTime() - Date.now() >= 60 * 60_000 && <button type="button" className="ws-calendar-absence-action" onClick={() => c.navigate("absences")}>Báo vắng</button>}
+    {approved && session.calendarStatus !== "ABSENT" && session.calendarStatus !== "ABSENCE_PENDING" && now > 0 && new Date(session.startTime).getTime() - now >= 60 * 60_000 && <button type="button" className="ws-calendar-absence-action" onClick={() => c.navigate("absences")}>Báo vắng</button>}
   </div>;
 })}</div> : <p className="ws-calendar-empty">{activeDay < today ? "Ngày này đã qua." : "Không có buổi dạy trong ngày này."}</p>}</section>{selected && <div className="ws-seat-modal-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedId(null); }}><section className="ws-teacher-class-dialog" role="dialog" aria-modal="true" aria-label="Chi tiết buổi dạy"><button type="button" className="ws-student-close" onClick={() => setSelectedId(null)} aria-label="Đóng"><X size={19} /></button><div className="ws-teacher-detail-head"><span>BUỔI DẠY #{selected.id}</span><span className={`ws-teacher-detail-status ${bookingStatus?.toLowerCase() ?? "pending"}`}>{selected.calendarStatus === "ABSENT" ? "Đã báo vắng" : bookingStatus ? bookingName[bookingStatus] : "Chưa có trạng thái"}</span></div><div className="ws-teacher-detail-main"><div className="ws-teacher-detail-date"><strong>{viDate(selected.startTime).slice(0, 5)}</strong><span>{viDate(selected.startTime).slice(6)}</span></div><div><small>{selected.className === "DEMO" ? "BUỔI HỌC" : selected.className}</small><h3>{selected.subject}</h3><SessionStatus status={selected.calendarStatus} teacher /><p>Thông tin buổi dạy và phòng học</p></div></div><div className="ws-teacher-class-facts"><div><small>THỜI GIAN</small><strong>{viTime(selected.startTime)} – {viTime(selected.endTime)}</strong></div><div><small>PHÒNG HỌC</small><strong>{selected.roomCode}</strong></div><div><small>NGÀY DẠY</small><strong>{viDate(selected.startTime)}</strong></div></div><div className="ws-teacher-detail-footer"><button type="button" className="ws-button secondary" onClick={() => setSelectedId(null)}>Đóng chi tiết</button></div></section></div>}</div>;
 }

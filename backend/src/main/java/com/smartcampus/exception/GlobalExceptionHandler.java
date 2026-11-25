@@ -23,6 +23,10 @@ public class GlobalExceptionHandler {
         Throwable cause = ex.getMostSpecificCause();
         if (cause instanceof SQLException sql) {
             String state = sql.getSQLState();
+            if ("40P01".equals(state) || "40001".equals(state)) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new ErrorResponse(409, "Concurrent update detected. Please retry."));
+            }
             HttpStatus status = "42501".equals(state) ? HttpStatus.FORBIDDEN
                     : "P0002".equals(state) ? HttpStatus.NOT_FOUND
                     : "23505".equals(state) || "23P01".equals(state) ? HttpStatus.CONFLICT

@@ -106,7 +106,7 @@ public class UserInvitationService {
             """, (rs, n) -> rs.getLong(1), hash(request.token()));
         if (ids.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Liên kết xác thực đã hết hạn hoặc đã sử dụng.");
         Long id = ids.getFirst();
-        jdbc.update("UPDATE users SET password_hash = ?, email_verified = TRUE, updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", passwords.encode(request.password()), id);
+        jdbc.update("UPDATE users SET password_hash = ?, email_verified = TRUE, personal_email_verified = (personal_email IS NOT NULL), updated_at = CURRENT_TIMESTAMP WHERE user_id = ?", passwords.encode(request.password()), id);
         jdbc.update("UPDATE user_invites SET used_at = CURRENT_TIMESTAMP WHERE user_id = ? AND used_at IS NULL", id);
     }
 

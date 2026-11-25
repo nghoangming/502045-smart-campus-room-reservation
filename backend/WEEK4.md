@@ -1,5 +1,7 @@
 # Week 4 backend integration
 
+> Tài liệu lịch sử của tuần 4, không còn là hướng dẫn triển khai hiện tại. Xem `../database/README.md` cho migration 001–024 và `../docs/architecture/openapi-spec.yaml` cho API hiện có. Xác thực JWT và các API dựa trên người dùng đăng nhập đã được triển khai; ghi chú placeholder user_id phía dưới chỉ phản ánh trạng thái của tuần 4.
+
 The implementation lives in `src/main/java/com/smartcampus/`; no files from the
 separate `week4` staging folder need to be copied over. Apply database migrations
 005 and 006 before starting the backend (`ddl-auto=validate` does not run them).
@@ -22,9 +24,6 @@ remain the final arbiter of simultaneous writes. A known room exclusion violatio
 or either active seat unique violation returns HTTP 409. Cancelling a booking also
 cancels active seat selections for its class session in the same transaction.
 
-Authentication is not implemented yet. Both room and seat reservations currently
-use the placeholder `user_id = 1`; that user must exist. Replace the placeholder
-with the authenticated user before using the API for multiple students. A real
-PostgreSQL integration test with two concurrent transactions is still required
-to verify deployment-specific lock behavior; the unit tests cover conflict
-translation and business checks.
+Current implementation uses JWT authentication and the authenticated user ID for
+room and seat operations. The original week-4 placeholder flow has been replaced.
+For current database rules and deployment steps, use `../database/README.md`.

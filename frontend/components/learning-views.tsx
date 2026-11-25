@@ -21,7 +21,7 @@ const courseLabel = (code: string) => code === "DEMO" ? "Chưa có mã học ph�
 function Empty({ text }: { text: string }) { return <div className="ws-empty"><Search size={25} /><h3>Chưa có thông tin</h3><p>{text}</p></div>; }
 export function LearningViews({ tab, context: c }: { tab: string; context: WorkspaceContext }) {
   const teacher = c.role === "TEACHER";
-  const { data: choices = [], mutate: refreshChoice } = useSWR(!teacher ? `api-seats-${c.account.id}` : null, async () => (await campusApi.mySeats(c.account.id)).map(reservation => ({ id: reservation.id, sessionId: reservation.classSessionId, seatId: reservation.seatId })), { revalidateOnFocus: true, refreshInterval: 15_000 });
+  const { data: choices = [], mutate: refreshChoice } = useSWR(!teacher ? `api-seats-${c.account.id}` : null, async () => (await campusApi.mySeats()).map(reservation => ({ id: reservation.id, sessionId: reservation.classSessionId, seatId: reservation.seatId })), { revalidateOnFocus: true, refreshInterval: 15_000 });
   if (tab === "absences") return <AbsenceView context={c} choices={choices} />;
   if (tab === "schedule" && !teacher) return <StudentSchedule context={c} choices={choices} />;
   if (tab === "schedule") return <TeacherSchedule context={c} />;
@@ -80,7 +80,7 @@ function Attendance({ context: c }: { context: WorkspaceContext }) {
   const [copiedQr, setCopiedQr] = useState(false);
   const [qrError, setQrError] = useState("");
   const [now, setNow] = useState(0);
-  useEffect(() => { setNow(Date.now()); const timer = setInterval(() => setNow(Date.now()), 30000); return () => clearInterval(timer); }, []);
+  useEffect(() => { const initial = setTimeout(() => setNow(Date.now()), 0); const timer = setInterval(() => setNow(Date.now()), 30000); return () => { clearTimeout(initial); clearInterval(timer); }; }, []);
   useEffect(() => {
     if (!qr) return;
     const timer = setTimeout(() => setQr(null), Math.max(0, new Date(qr.expiresAt).getTime() - Date.now()));
@@ -91,10 +91,10 @@ function Attendance({ context: c }: { context: WorkspaceContext }) {
   const opensAt = session ? new Date(session.startTime).getTime() + 5 * 60000 : 0;
   const closesAt = session ? Math.min(new Date(session.startTime).getTime() + 20 * 60000, new Date(session.endTime).getTime()) : 0;
   const qrHint = !session ? "Chưa chọn buổi học." : booking?.status !== "CONFIRMED" ? "Yêu cầu đặt phòng chưa được duyệt." : now && now < opensAt ? `QR mở từ ${viTime(new Date(opensAt).toISOString())} ngày ${viDate(session.startTime)} (sau giờ bắt đầu 5 phút).` : now && now >= closesAt ? "Đã hết thời gian điểm danh của buổi học (từ phút thứ 5 đến trước phút thứ 20)." : "";
-  useEffect(() => { if (!eligibleSessions.some(item => item.id === sessionId)) { setSessionId(eligibleSessions[0]?.id ?? 0); setSelectedSeat(null); setQr(null); } }, [eligibleSessions, sessionId]);
+  useEffect(() => { if (eligibleSessions.some(item => item.id === sessionId)) return; const timer = setTimeout(() => { setSessionId(eligibleSessions[0]?.id ?? 0); setSelectedSeat(null); setQr(null); }, 0); return () => clearTimeout(timer); }, [eligibleSessions, sessionId]);
   const room = c.data.rooms.find(item => item.id === session?.roomId);
   const { data: seats, isLoading, error } = useSWR(session ? ["class-session-seats", sessionId] : null, () => campusApi.seats(sessionId), { revalidateOnFocus: true, refreshInterval: 15_000 });
-  const { data: attendance = [], mutate: refreshAttendance } = useSWR(session ? `attendance-${sessionId}-${c.account.id}` : null, () => campusApi.attendance(sessionId, c.account.id), { revalidateOnFocus: true, refreshInterval: 15_000 });
+  const { data: attendance = [], mutate: refreshAttendance } = useSWR(session ? `attendance-${sessionId}-${c.account.id}` : null, () => campusApi.attendance(sessionId), { revalidateOnFocus: true, refreshInterval: 15_000 });
   const reserved = seats?.filter(seat => seat.status === "RESERVED").length ?? 0;
   const available = seats?.filter(seat => seat.status === "AVAILABLE").length ?? 0;
   const selected = seats?.find(seat => seat.seatNumber === selectedSeat);
@@ -116,11 +116,11 @@ function Attendance({ context: c }: { context: WorkspaceContext }) {
     return seat.status === "AVAILABLE" ? "free" : "blocked";
   };
   const seatStateLabel = { present: "đã điểm danh", late: "đi học trễ", absent: "vắng mặt", excused: "vắng có phép", taken: "chưa điểm danh", free: "chưa đặt", blocked: "không thể đặt" };
-  const generateQr = async () => { if (!session) return; setQrError(""); try { const next = await campusApi.generateQr(session.id, c.account.id); setQr(next); await refreshAttendance(); } catch (reason) { setQrError(reason instanceof Error ? reason.message : "Không thể tạo mã QR."); } };
+  const generateQr = async () => { if (!session) return; setQrError(""); try { const next = await campusApi.generateQr(session.id); setQr(next); await refreshAttendance(); } catch (reason) { setQrError(reason instanceof Error ? reason.message : "Không thể tạo mã QR."); } };
   const copyQrCode = async () => { if (!qr) return; try { await navigator.clipboard.writeText(qr.token); setCopiedQr(true); setTimeout(() => setCopiedQr(false), 2000); } catch { setQrError("Không sao chép được mã. Hãy chọn và sao chép mã thủ công."); } };
   const cancelAttendance = (id: number, userId: number) => c.confirm("Hủy điểm danh?", `Hủy lượt điểm danh của sinh viên #${userId} ở buổi học này. Hệ thống giữ lịch sử hủy và sinh viên có thể quét lại nếu còn trong giờ điểm danh.`, async () => {
     setQrError("");
-    try { await campusApi.cancelAttendance(id, c.account.id); await refreshAttendance(); c.notice("Đã hủy lượt điểm danh trên backend."); }
+    try { await campusApi.cancelAttendance(id); await refreshAttendance(); c.notice("Đã hủy lượt điểm danh trên backend."); }
     catch (reason) { setQrError(reason instanceof Error ? reason.message : "Không thể hủy điểm danh."); }
   });
 
@@ -171,7 +171,7 @@ function Checkin({ context: c, choices }: { context: WorkspaceContext; choices: 
     if (!session) { setError("Hãy đặt ghế cho một buổi học trước khi check-in."); return; }
     setBusy(true); setError(""); setResult("");
     try {
-      const saved = await campusApi.checkIn(code.trim(), session.id, c.account.id);
+      const saved = await campusApi.checkIn(code.trim(), session.id);
       await mutateCache(["my-attendance-details", c.account.id]);
       setResult(`${saved.status === "LATE" ? "Đã ghi nhận đi trễ" : "Đã điểm danh thành công"} lúc ${viTime(saved.checkedInAt ?? new Date().toISOString())}.`);
     } catch (reason) { setError(reason instanceof Error ? reason.message : "Không thể check-in."); }

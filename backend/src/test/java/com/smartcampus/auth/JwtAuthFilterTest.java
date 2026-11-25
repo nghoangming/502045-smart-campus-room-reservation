@@ -5,12 +5,16 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import tools.jackson.databind.ObjectMapper;
 
 class JwtAuthFilterTest {
-    private final JwtService jwt = new JwtService("test-secret-with-at-least-thirty-two-characters", new ObjectMapper());
+    private final JdbcTemplate jdbc = new JdbcTemplate() {
+        @Override public <T> T queryForObject(String sql, Class<T> type, Object... args) { return type.cast(0); }
+    };
+    private final JwtService jwt = new JwtService("test-secret-with-at-least-thirty-two-characters", new ObjectMapper(), jdbc);
     private final JwtAuthFilter filter = new JwtAuthFilter(jwt);
 
     @Test
