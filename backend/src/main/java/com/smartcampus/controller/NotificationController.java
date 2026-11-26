@@ -20,7 +20,9 @@ public class NotificationController {
     public record MarkAllReadResult(int updatedCount) { }
 
     static String targetTab(String type) {
-        return "ABSENCE".equals(type) ? "absences" : null;
+        if ("ABSENCE".equals(type)) return "absences";
+        if ("INCIDENT".equals(type)) return "incidents";
+        return null;
     }
 
     @GetMapping
