@@ -7,7 +7,8 @@ try {
   /* không có file .env thì dùng giá trị mặc định */
 }
 
-const BASE_URL = process.env.BASE_URL ?? 'http://localhost:5173';
+const WEB_PORT = process.env.WEB_PORT ?? '5173';
+const BASE_URL = process.env.BASE_URL ?? `http://127.0.0.1:${WEB_PORT}`;
 const API_URL = process.env.API_URL ?? 'http://localhost:8080';
 
 export default defineConfig({
@@ -22,8 +23,15 @@ export default defineConfig({
   },
   projects: [
     {
+      name: 'api-setup',
+      testDir: './setup',
+      use: { baseURL: API_URL },
+    },
+    {
       name: 'api',
       testDir: './api',
+      dependencies: ['api-setup'],
+      workers: 1,
       use: { baseURL: API_URL },
     },
     {
@@ -35,12 +43,12 @@ export default defineConfig({
       },
     },
   ],
-  // Tự bật frontend (Vite) khi chạy E2E. Đặt SKIP_WEB_SERVER=true nếu bạn tự chạy `npm run dev`
+  // Tự bật frontend (Next.js) khi chạy E2E. Đặt SKIP_WEB_SERVER=true nếu bạn tự chạy `npm run dev`
   // hoặc chỉ chạy API test (không cần frontend).
   webServer: process.env.SKIP_WEB_SERVER
     ? undefined
     : {
-        command: 'npm --prefix ../frontend run dev -- --host 127.0.0.1 --port 5173',
+        command: `npm --prefix ../frontend run dev -- --hostname 127.0.0.1 --port ${WEB_PORT}`,
         url: BASE_URL,
         reuseExistingServer: !process.env.CI,
         timeout: 120_000,

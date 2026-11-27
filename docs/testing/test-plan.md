@@ -1,46 +1,48 @@
-# Test Plan – Smart Campus Facility & Study Room Reservation
+# Test plan và evidence (27/11/2026)
 
-**Người phụ trách:** M4 – Nguyễn Văn Tâm (Testing)
-**Cập nhật:** 21/10/2026
+Đối chiếu Playwright specs với API controller/DTO hiện tại. API suite chỉ dùng database đã cấu hình; setup prerequisite chỉ GET dữ liệu, không chạy migrations, seed SQL hoặc thay đổi schema.
 
-## Mục tiêu
+| Tuần | Phạm vi | Tình trạng test hiện tại |
+|---|---|---|
+| 1 | Playwright, JUnit, CI lint/compile/test | API/E2E project tách riêng; CI chạy lint/build, Maven verify và upload Surefire/JaCoCo artifact. |
+| 2 | Login, Rooms, Schedule, Availability | Specs đã theo response Login `accessToken/roles`; rooms/schedule dùng Bearer token; Availability public và dùng `startTime/endTime`. API setup chỉ kiểm tra admin và loại phòng. |
+| 3 | Booking success, overlap, adjacent boundary, invalid time, cancel | Spec dùng `/study-room-reservations`, ISO offset datetimes và PATCH `/{id}/cancel`. |
+| 4 | Hai người cùng đặt phòng/ghế | Hai race specs gửi request song song với student và student2; cả hai chạy và xác nhận đúng một request thành công. |
+| 5 | QR valid/invalid/expired/wrong class; Resource CRUD/status | Fixture script tạo challenge/session tươi trước API suite; QR và Resource CRUD/status đều chạy. |
+| 6 | Incident/Notification và flow chính | Incident spec báo cáo, admin resolve, kiểm tra thông báo phát sinh và đánh dấu đã đọc. Notification spec kiểm tra list/read-all/auth. |
+| 7 | Regression, coverage, E2E, evidence | E2E gồm login, schedule và các flow chính; JaCoCo đo line coverage toàn backend. Mức hiện đo được 39.11%, dưới mục tiêu cũ 60%. |
+| 8 | Full CI/E2E và evidence | CI chạy Maven verify, API suite với fixture, E2E suite và lưu báo cáo/artifact. |
 
-Theo dõi phạm vi kiểm thử của M4 theo phân công từng tuần, chỉ ra phần đã có trong repo và phần còn phụ thuộc các thành viên khác. Test cho API chưa triển khai được giữ ở trạng thái `@pending` để CI hiện tại không lỗi vì thiếu endpoint.
+## Các test workflow vừa bổ sung
 
-## Kế hoạch theo tuần
+- `api/class-sessions/booking-approval.spec.ts`: giáo viên tạo booking tương lai kèm buổi học, admin duyệt; kiểm tra thêm từ chối booking khác. API hiện tạo buổi học cùng lúc tạo yêu cầu, trước lúc admin duyệt.
+- `api/seats/seat-lifecycle.spec.ts`: tự tạo session test qua API, xem sơ đồ, giữ ghế, xác nhận danh sách của mình và hủy ghế.
+- `api/absences/absence-workflows.spec.ts`: student gửi yêu cầu và teacher review; teacher báo vắng và admin quyết định. Dùng hai session riêng cấu hình qua `TEST_STUDENT_ABSENCE_SESSION_ID` và `TEST_TEACHER_ABSENCE_SESSION_ID`.
+- `api/attendance/qr-workflow.spec.ts`: cấp mã qua API, check-in và xem danh sách điểm danh; fixture script chuẩn bị session/student2 trong cửa sổ 5–20 phút. Finalize chạy với một session ended riêng.
+- `api/accounts/intake-and-recovery.spec.ts`: xác minh CSV sai header, activation token sai, forgot-password với email không tồn tại. Import hợp lệ và xác minh/reset thực sự cần mailbox test đọc token nên chưa tự chạy.
+- `api/rooms/room-crud.spec.ts`: tạo/cập nhật status/đọc/xóa phòng test mới; không dùng fixture phòng thật.
+- `api/reservations/study-approval.spec.ts`: duyệt một booking study đã chuẩn bị qua `TEST_STUDY_RESERVATION_ID`; dữ liệu booking pending và capacity cần chuẩn bị sau.
 
-| Tuần | Nhiệm vụ M4 | Phạm vi kiểm thử | Trạng thái hiện tại / tiêu chí hoàn thành |
-|------|-------------|-----------------|-------------------------------------------|
-| 1 | Setup unit test + Playwright; cấu trúc test; cấu hình CI compile/test cơ bản | Backend JUnit, Playwright API/E2E config, thư mục/fixtures/helpers, CI | **Đạt phần nền tảng trong repo.** Playwright tách API/E2E; CI có frontend lint/build, backend compile/test, API/E2E. Lint/unit test frontend chỉ chạy khi framework/scripts được M1 bổ sung. |
-| 2 | Test Login, Room API, Schedule, Availability; cập nhật CI | Login UI/API; Room list/detail; Schedule UI/API; Availability API | **Đạt một phần.** Login UI, Room API list/detail, Schedule UI và CI test đã có. Còn thiếu Login API, Schedule API và Availability API test. |
-| 3 | Test booking success, overlap, boundary time, invalid time, cancel | Reservation API: tạo thành công, xung đột giờ, biên liền kề, dữ liệu không hợp lệ, hủy | Bộ test được tạo trong `tests/api/reservations/reservations.spec.ts` và đang `@pending`. Hoàn thành khi API trả 201 cho đặt thành công, 409 cho overlap, 400 cho dữ liệu/giờ sai, hỗ trợ hủy và cập nhật trạng thái. |
-| 4 | Test hai người đồng thời đặt cùng phòng và cùng ghế; chỉ một request thành công | Kiểm thử concurrency trên API Reservation/Seat | Bộ test được tạo trong `tests/api/seats/seat-concurrency.spec.ts` và đang `@pending`. Hoàn thành khi trong hai request cạnh tranh cùng tài nguyên/khung giờ chỉ một request thành công, request còn lại bị từ chối. |
+## Hợp đồng test đã dùng
 
-## Loại kiểm thử và môi trường
+- Login: `POST /api/v1/auth/login` trả `accessToken`, `roles`, `email`, `id`.
+- Schedule: `GET /api/v1/rooms/{id}/schedule?date=YYYY-MM-DD`, cần Bearer token; phần tử dùng `startTime/endTime`.
+- Availability: `GET /api/v1/rooms/availability?date=...&startTime=...&endTime=...`, trả array phòng và không yêu cầu token.
+- Reservation: `/api/v1/study-room-reservations`, `startTime/endTime` là ISO offset datetime; cancel bằng PATCH.
+- Seat: `/api/v1/class-sessions/{id}/seats`, POST `/api/v1/seat-reservations` với `classSessionId/seatId`.
 
-| Loại | Công cụ / phạm vi | Môi trường mặc định |
-|------|------------------|--------------------|
-| Unit | Backend JUnit (`mvn test`); frontend hiện chưa có framework unit test | Backend build environment |
-| API | Playwright `request` gọi backend | `API_URL=http://localhost:8080` |
-| E2E | Playwright + Chromium trên frontend | `BASE_URL=http://localhost:5173` |
+## Môi trường và CI
 
-Yêu cầu test: Node.js 20+ và Playwright `^1.63`. CI chạy các job frontend, backend, API tests và E2E tests theo workflow hiện tại.
+CI API job yêu cầu secrets `CI_DB_URL`, `CI_DB_USER`, `CI_DB_PASSWORD`, `CI_JWT_SECRET` và tài khoản admin/teacher/two students. Database test phải migrate sẵn và có phòng LAB, THEORY cùng STUDY. CI provision step tạo QR/ended-session fixture ngắn hạn; principal DB kiểm thử cần quyền tạo bản ghi fixture và `session_replication_role` trong transaction.
 
-## Quy ước thực hiện
+Evidence cần lưu cùng commit: Playwright HTML report, Surefire XML, JaCoCo HTML/XML, CI run URL, commit SHA và PR URL. Coverage tính trên toàn bộ backend Java source bằng JaCoCo line counter.
 
-- File test dùng hậu tố `*.spec.ts`; tên test mô tả hành vi và kết quả mong đợi.
-- Lấy room ID từ API/helper thay vì hard-code ID.
-- Dùng ngày tương lai cho booking test để giảm phụ thuộc dữ liệu lịch sử.
-- API chưa sẵn sàng dùng helper `pending(...)`; chạy có chủ đích bằng `RUN_PENDING=true` sau khi API và dữ liệu test đã sẵn sàng.
-- Test tranh chấp phải gửi đồng thời cùng một tài nguyên/khung giờ trên database test dùng chung; không chạy dựa trên stub hoặc dữ liệu được cô lập riêng cho mỗi request.
+## Kết quả chạy tại workspace
 
-## Rủi ro và phụ thuộc
-
-| Vấn đề | Phụ thuộc | Hướng xử lý |
-|--------|-----------|-------------|
-| Chưa có Auth API test/contract đăng nhập rõ ràng | M2, M3 | Chốt route, payload, auth response và seed user trước khi viết/bật test API. |
-| Schedule/Availability API test còn thiếu dù endpoint có trong backend | M2 | Viết test theo response thực tế; kiểm tra ngày/giờ sai, phòng không tồn tại, danh sách rỗng và khung giờ khả dụng. |
-| Reservation API, route cancel và shape response chưa có trong repo | M2, M3 | Thống nhất endpoint, status code, ID và trạng thái sau hủy; sau đó bỏ `pending`. |
-| Seat API và dữ liệu ghế/lớp chưa có trong repo | M2, M3 | Chuẩn bị fixture/seed ổn định cho cùng ghế và class session. |
-| Dữ liệu concurrency có thể va chạm giữa CI runs | M2, M3, CI | Dùng ngày/giờ test định trước hoặc cơ chế tạo và dọn dữ liệu test riêng. |
-| Frontend chưa có unit test framework/script | M1 | Quyết định framework và thêm script khi phạm vi yêu cầu frontend unit test. |
+- 27/11/2026: API suite gồm **50 API tests + 1 API prerequisite check**. Fixture setup tạo QR valid/expired/wrong-class, workflow trong cửa sổ check-in và ended session/seat; không còn skip khi chạy ngay sau provisioning.
+- `mvnw test`: **42 passed, 0 failed** khi cấp `DB_URL`, `DB_USER`, `DB_PASSWORD` từ `tests/.env`; `spring.jpa.hibernate.ddl-auto=validate` chỉ kiểm tra schema.
+- Frontend `npm ci` khôi phục dependency `jsqr` đã có trong lockfile nhưng thiếu trong `node_modules`; Playwright Chromium cần được cài tương ứng phiên bản trước khi chạy E2E.
+- API regression sau provisioning: **51 passed, 0 skipped, 0 failed**. Cả hai bài concurrency (hai sinh viên cùng khung giờ và cùng ghế) chạy với student2 và pass.
+- E2E trên frontend cổng 3000: **20/20 passed** lần xác minh gần nhất. Browser flow gồm student booking/cancel, seat reserve/cancel, QR check-in, teacher booking/QR/incident, admin approval, resource CRUD/status và notification read-all. Các browser flow mock API; API integration thật được kiểm tra riêng.
+- Frontend `npm run lint`: pass; `tsc --noEmit`: pass.
+- JaCoCo toàn backend: **508/1,299 lines = 39.11%**. Report HTML/XML nằm trong `backend/target/site/jacoco`; mục tiêu 60% hiện chưa đạt.

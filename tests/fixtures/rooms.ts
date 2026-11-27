@@ -4,4 +4,5 @@ export const stubRooms = [
   { id: 'SR101', name: 'Study Room 101', type: 'STUDY' },
 ];
 
-export const NOT_FOUND_ROOM_ID = 'KHONG-TON-TAI-999';
+// Room ids are Long path variables; a non-numeric sentinel returns 400, not 404.
+export const NOT_FOUND_ROOM_ID = '999999999';

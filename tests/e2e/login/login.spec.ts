@@ -1,73 +1,79 @@
 import { test, expect } from '@playwright/test';
-import { users } from '../../fixtures/users';
+import { mockWorkspaceApi, sessionKey } from '../../helpers/auth';
+
+const studentEmail = 'student@smartcampus.test';
+const password = 'password123';
 
 test.describe('Đăng nhập (UI)', () => {
   test.beforeEach(async ({ page }) => {
+    await mockWorkspaceApi(page, 'STUDENT');
     await page.goto('/login');
   });
 
-  test('hiển thị form đăng nhập', async ({ page }) => {
-    await expect(page.getByRole('heading', { name: 'Sign in to your account' })).toBeVisible();
-    await expect(page.getByLabel('Username')).toBeVisible();
-    await expect(page.getByLabel('Password', { exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: /sign in/i })).toBeEnabled();
+  test('hiển thị form email, mật khẩu và lựa chọn vai trò', async ({ page }) => {
+    await expect(page.getByRole('heading', { name: 'Chào mừng trở lại.' })).toBeVisible();
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByPlaceholder('Nhập mật khẩu')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Chọn vai trò' })).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Đăng nhập' })).toBeEnabled();
   });
 
-  test('đăng nhập đúng chuyển sang /dashboard và lưu trạng thái đăng nhập', async ({ page }) => {
-    await page.getByLabel('Username').fill(users.admin.username);
-    await page.getByLabel('Password', { exact: true }).fill(users.admin.password);
-    await page.getByRole('button', { name: /sign in/i }).click();
+  test('đăng nhập sinh viên mở workspace và lưu phiên', async ({ page }) => {
+    await page.getByLabel('Email').fill(studentEmail);
+    await page.getByPlaceholder('Nhập mật khẩu').fill(password);
+    await page.getByRole('button', { name: 'Đăng nhập' }).click();
 
-    await expect(page).toHaveURL(/\/dashboard$/);
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
-    const flag = await page.evaluate(() => localStorage.getItem('smartCampusLoggedIn'));
-    expect(flag).toBe('true');
+    await expect(page).toHaveURL(/\/student$/);
+    await expect(page.getByRole('heading', { name: 'Tổng quan' })).toBeVisible();
+    const session = await page.evaluate((key) => sessionStorage.getItem(key), sessionKey);
+    expect(JSON.parse(session!).account.role).toBe('STUDENT');
   });
 
-  test('sai mật khẩu hiện thông báo lỗi và ở lại trang login', async ({ page }) => {
-    await page.getByLabel('Username').fill(users.admin.username);
-    await page.getByLabel('Password', { exact: true }).fill(users.invalid.password);
-    await page.getByRole('button', { name: /sign in/i }).click();
-
-    await expect(page.getByRole('alert')).toContainText('Incorrect username or password');
-    await expect(page).toHaveURL(/\/login$/);
-    const flag = await page.evaluate(() => localStorage.getItem('smartCampusLoggedIn'));
-    expect(flag).toBeNull();
+  test('sai thông tin xác thực hiện lỗi từ API', async ({ page }) => {
+    await page.unroute('**/api/v1/**');
+    await page.route('**/api/v1/**', async (route) => {
+      if (new URL(route.request().url()).pathname.endsWith('/auth/login')) {
+        await route.fulfill({ status: 401, contentType: 'application/json', body: JSON.stringify({ message: 'Email hoặc mật khẩu không đúng.' }) });
+      } else {
+        await route.fulfill({ status: 200, contentType: 'application/json', body: '[]' });
+      }
+    });
+    await page.getByLabel('Email').fill(studentEmail);
+    await page.getByPlaceholder('Nhập mật khẩu').fill('wrong-password');
+    await page.getByRole('button', { name: 'Đăng nhập' }).click();
+    await expect(page.locator('.auth-error')).toContainText('Email hoặc mật khẩu không đúng.');
+    expect(await page.evaluate((key) => sessionStorage.getItem(key), sessionKey)).toBeNull();
   });
 
-  test('sai username hiện thông báo lỗi', async ({ page }) => {
-    await page.getByLabel('Username').fill(users.invalid.username);
-    await page.getByLabel('Password', { exact: true }).fill(users.admin.password);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByRole('alert')).toContainText('Incorrect username or password');
+  test('không cho submit khi thiếu email hoặc mật khẩu', async ({ page }) => {
+    const email = page.getByLabel('Email');
+    const submit = page.getByRole('button', { name: 'Đăng nhập' });
+    await submit.click();
+    expect(await email.evaluate((element) => (element as HTMLInputElement).validity.valid)).toBe(false);
+    await email.fill(studentEmail);
+    await submit.click();
+    expect(await page.getByPlaceholder('Nhập mật khẩu').evaluate((element) => (element as HTMLInputElement).validity.valid)).toBe(false);
   });
 
-  test('để trống cả hai ô hiện thông báo yêu cầu nhập', async ({ page }) => {
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByRole('alert')).toContainText('Please enter both username and password');
-    await expect(page).toHaveURL(/\/login$/);
+  test('nút hiển thị mật khẩu đổi kiểu input', async ({ page }) => {
+    const input = page.getByPlaceholder('Nhập mật khẩu');
+    await input.fill(password);
+    await expect(input).toHaveAttribute('type', 'password');
+    await page.getByRole('button', { name: 'Hiện mật khẩu' }).click();
+    await expect(input).toHaveAttribute('type', 'text');
+    await page.getByRole('button', { name: 'Ẩn mật khẩu' }).click();
+    await expect(input).toHaveAttribute('type', 'password');
   });
 
-  test('chỉ nhập username, thiếu password hiện thông báo yêu cầu nhập', async ({ page }) => {
-    await page.getByLabel('Username').fill(users.admin.username);
-    await page.getByRole('button', { name: /sign in/i }).click();
-    await expect(page.getByRole('alert')).toContainText('Please enter both username and password');
+  test('admin vào trang đăng nhập quản trị riêng', async ({ page }) => {
+    await page.goto('/admin/login');
+    await expect(page.getByRole('heading', { name: 'Chào mừng Quản trị viên.' })).toBeVisible();
+    await expect(page.getByText('Khu vực dành riêng cho Quản trị viên')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Chọn vai trò' })).toHaveCount(0);
   });
 
-  test('nút Show/Hide đổi kiểu hiển thị mật khẩu', async ({ page }) => {
-    const password = page.getByLabel('Password', { exact: true });
-    await password.fill('abc123');
-    await expect(password).toHaveAttribute('type', 'password');
-
-    await page.getByRole('button', { name: 'Show' }).click();
-    await expect(password).toHaveAttribute('type', 'text');
-
-    await page.getByRole('button', { name: 'Hide' }).click();
-    await expect(password).toHaveAttribute('type', 'password');
-  });
-
-  test('đường dẫn không tồn tại được chuyển về trang login', async ({ page }) => {
+  test('route không tồn tại hiển thị trang 404 của Next.js', async ({ page }) => {
     await page.goto('/duong-dan-khong-ton-tai');
-    await expect(page.getByRole('heading', { name: 'Sign in to your account' })).toBeVisible();
+    await expect(page.getByText('This page could not be found.')).toBeVisible();
   });
 });

@@ -1,105 +1,25 @@
-# Test Cases – M4 (Tuần 1–4)
+# Test cases và trạng thái
 
-**Phụ trách:** Nguyễn Văn Tâm
-**Trạng thái:** ✅ đã có test chạy · ⏳ `@pending` chờ API hoặc dữ liệu test
+Rà soát 27/11/2026. Không có case API bị bao bởi `@pending`; các test cần tài khoản/fixture đặc thù dùng `test.skip` với lý do cấu hình cụ thể.
 
-## Tuần 1 – nền tảng test và CI
+| Tuần | Trường hợp | File/hiện trạng |
+|---|---|---|
+| 1 | Cấu trúc API/E2E, CI, backend JUnit | `playwright.config.ts`, `.github/workflows/ci.yml`, JUnit và JaCoCo report trong `mvn verify`. Chưa có frontend unit test hoặc coverage gate. |
+| 2 | Login API, Room API, Schedule, Availability | API specs theo contract; API setup xác minh admin và có cả loại phòng classroom/study room chỉ bằng GET. |
+| 3 | Booking thành công, overlap, liền kề, giờ sai, cancel | `api/reservations/reservations.spec.ts`, actual URL/payload/status. |
+| 4 | Hai student đặt đồng thời cùng phòng/cùng ghế | Reservation và seat specs gửi request song song với hai tài khoản; đã chạy pass với student2 ngày 27/11/2026. |
+| 5 | QR valid/invalid/expired/wrong class; Resource status/CRUD | Fixture script tự tạo dữ liệu QR/session tươi; valid/invalid/expired/wrong-class chạy pass. Resource API thực hiện CRUD và kiểm tra status sai. |
+| 6 | Incident/Notification | Incident lifecycle xác nhận notification được tạo; notification list/read-all/auth có spec riêng; E2E UI bao phủ report/resolve incident và read-all notification. |
+| 7 | Regression/E2E/coverage/evidence | E2E 20/20 pass; JaCoCo đo được 39.11% line coverage, dưới ngưỡng mục tiêu 60%. |
+| 8 | Full CI | Workflow đã cấu hình Maven verify, API với fixture và E2E; cần CI run để lưu evidence trên Git/PR. |
 
-| ID | Hạng mục | Kết quả / tiêu chí | Trạng thái |
-|----|----------|--------------------|------------|
-| T1-SETUP-01 | Playwright config có project API và E2E | Có thể liệt kê và chạy riêng từng project | ✅ |
-| T1-SETUP-02 | Cấu trúc API/E2E, helper và fixture | Test được nhóm theo feature; dùng helper chung | ✅ |
-| T1-CI-01 | CI frontend | Chạy lint/build nếu script tương ứng được cấu hình | ✅ cấu hình |
-| T1-CI-02 | CI backend | Chạy `mvn compile` và `mvn test` | ✅ cấu hình |
-| T1-CI-03 | CI API/E2E | Khởi chạy backend/frontend và chạy Playwright | ✅ cấu hình |
+Các file workflow bổ sung: `api/class-sessions/booking-approval.spec.ts`, `api/seats/seat-lifecycle.spec.ts`, `api/seats/session-end-lock.spec.ts`, `api/absences/absence-workflows.spec.ts`, `api/attendance/qr-workflow.spec.ts`, `api/accounts/intake-and-recovery.spec.ts`, `api/rooms/room-crud.spec.ts`, `api/reservations/study-approval.spec.ts`. QR realtime, ghế và các approval có dữ liệu nền cần env fixture; chúng được đánh dấu skip nếu fixture thiếu.
 
-## Tuần 2 – Login, Room, Schedule, Availability
+API test có ghi dữ liệu nghiệp vụ qua endpoint (reservation/incident/resource) và nên chạy trên DB dành cho kiểm thử. Fixture SQL chỉ thêm/cập nhật dữ liệu được gắn tên QA; không có migration/schema nào được thêm hoặc sửa. Fixture attendance dùng quyền DB cho `session_replication_role` trong transaction khi dựng ghế lịch sử cho session đã kết thúc.
 
-### Login UI – `tests/e2e/login/login.spec.ts`
+## Kết quả chạy mới nhất
 
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-LOGIN-01 | Mở `/login` | Hiện form Username, Password và nút Sign in | ✅ |
-| TC-LOGIN-02 | Đăng nhập `admin/admin123` | Chuyển tới `/dashboard`, lưu `smartCampusLoggedIn=true` | ✅ |
-| TC-LOGIN-03 | Sai mật khẩu | Hiện thông báo lỗi, vẫn ở `/login`, không lưu trạng thái đăng nhập | ✅ |
-| TC-LOGIN-04 | Sai username | Hiện thông báo đăng nhập không hợp lệ | ✅ |
-| TC-LOGIN-05 | Bỏ trống cả hai trường | Yêu cầu nhập đủ username/password | ✅ |
-| TC-LOGIN-06 | Chỉ nhập username | Yêu cầu nhập đủ username/password | ✅ |
-| TC-LOGIN-07 | Bấm Show/Hide | Chuyển kiểu hiển thị password/text | ✅ |
-| TC-LOGIN-08 | Mở URL không tồn tại | Điều hướng về trang login | ✅ |
-
-### Login API – dự kiến `tests/api/auth/login.spec.ts`
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-AUTH-01 | Đăng nhập đúng tài khoản | 200, response có token | ⏳ API chưa có |
-| TC-AUTH-02 | Kiểm tra dữ liệu response | Không lộ password/hash | ⏳ API chưa có |
-| TC-AUTH-03 | Sai mật khẩu | 401 | ⏳ API chưa có |
-| TC-AUTH-04 | Email không tồn tại | 401 với thông báo không tiết lộ tài khoản tồn tại | ⏳ API chưa có |
-| TC-AUTH-05 | Thiếu password/body rỗng | 400 | ⏳ API chưa có |
-| TC-AUTH-06 | Student đăng nhập | 200, role là STUDENT | ⏳ API/seed chưa có |
-
-### Room API – `tests/api/rooms/rooms.spec.ts`
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-ROOM-01 | `GET /rooms` | 200, JSON array không rỗng | ✅ |
-| TC-ROOM-02 | Kiểm tra trường phòng | Mỗi phòng có ID và tên hợp lệ | ✅ |
-| TC-ROOM-03 | Kiểm tra ID phòng | Không trùng nhau | ✅ |
-| TC-ROOM-04 | `GET /rooms/{id}` hợp lệ | 200, ID response khớp ID yêu cầu | ✅ |
-| TC-ROOM-05 | `GET /rooms/{id}` không tồn tại | 404, response có thông tin lỗi | ✅ |
-| TC-HEALTH-01 | `GET /health` | Backend trả 200 | ✅ |
-
-### Schedule API – dự kiến `tests/api/rooms/schedule.spec.ts`
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-SCH-01 | Lấy lịch phòng theo ngày | 200, trả array | ⏳ Chưa có API test |
-| TC-SCH-02 | Kiểm tra thời gian từng mục lịch | start trước end | ⏳ Chưa có API test |
-| TC-SCH-03 | Ngày không có lịch | 200, array rỗng | ⏳ Chưa có API test |
-| TC-SCH-04 | Ngày sai định dạng hoặc thiếu date | 400 | ⏳ Chưa có API test |
-| TC-SCH-05 | Room ID không tồn tại | 404 | ⏳ Chưa có API test |
-
-### Availability API – dự kiến `tests/api/rooms/availability.spec.ts`
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-AVL-01 | Truy vấn khung giờ trống | 200, trả danh sách phòng khả dụng | ⏳ Chưa có API test |
-| TC-AVL-02 | Kiểm tra cấu trúc response | JSON array; mỗi phòng có ID | ⏳ Chưa có API test |
-| TC-AVL-03 | end ≤ start | 400 | ⏳ Chưa có API test |
-| TC-AVL-04 | Thiếu start/end | 400 | ⏳ Chưa có API test |
-| TC-AVL-05 | Giờ sai định dạng | 400 | ⏳ Chưa có API test |
-
-### Schedule UI – `tests/e2e/schedule/room-schedule.spec.ts`
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-UISCH-01 | Mở `/roomschedule` | Hiện tiêu đề và 6 dòng phòng mặc định | ✅ |
-| TC-UISCH-02 | Lọc phòng A101 | Chỉ còn dòng A101 | ✅ |
-| TC-UISCH-03 | Chọn phòng C302 | Trạng thái hiển thị Available | ✅ |
-| TC-UISCH-04 | Đổi ngày | Tiêu đề lịch cập nhật theo ngày đã chọn | ✅ |
-
-## Tuần 3 – Reservation API
-
-Test được đặt tại `tests/api/reservations/reservations.spec.ts`; đang `@pending` đến khi M2 triển khai API và thống nhất request/response.
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-RES-01 | Đặt phòng thành công | 201; room/date/start/end khớp request | ⏳ |
-| TC-RES-02 | Tạo booking chồng lấn cùng phòng | Lần đầu 201, lần overlap 409 | ⏳ |
-| TC-RES-03 | Booking liền kề (start bằng end booking trước) | Được chấp nhận, không tính overlap | ⏳ |
-| TC-RES-04 | end bằng hoặc trước start | 400 | ⏳ |
-| TC-RES-05 | Ngày/giờ sai định dạng hoặc thiếu trường | 400 | ⏳ |
-| TC-RES-06 | Hủy booking vừa tạo | Hủy 200/204; trạng thái sau hủy là CANCELLED | ⏳ |
-| TC-RES-07 | Hủy ID không tồn tại | 404 | ⏳ |
-
-## Tuần 4 – kiểm thử concurrency
-
-Test được đặt tại `tests/api/seats/seat-concurrency.spec.ts`; đang `@pending` đến khi Reservation/Seat API và dữ liệu ghế test sẵn sàng.
-
-| ID | Mô tả | Kết quả mong đợi | Trạng thái |
-|----|-------|------------------|------------|
-| TC-CON-01 | Hai request đồng thời đặt cùng ghế/cùng khung giờ | Chính xác một request 200/201; request còn lại 409/422 | ⏳ |
-| TC-CON-02 | Hai request đồng thời đặt cùng phòng/cùng khung giờ | Chính xác một request 200/201; request còn lại 409/422 | ⏳ |
-
-**Điều kiện kiểm thử concurrency:** hai request phải dùng cùng tài nguyên và khung giờ, được gửi đồng thời trên DB test dùng chung. Không chấp nhận trường hợp cả hai request thành công. Chốt lại status code theo hợp đồng API trước khi bỏ `@pending`.
+- E2E: **20 passed, 0 failed** ngày 27/11/2026; cần cài Chromium tương thích Playwright trước lần chạy trên môi trường mới.
+- API regression ngày 27/11/2026: **51 passed, 0 skipped, 0 failed** (bao gồm prerequisite check), sau khi chạy fixture provisioning. Hai race test cùng phòng/cùng khung giờ và cùng ghế đều chạy với student2 và pass.
+- Backend JUnit: **42 passed, 0 failed** khi cấp DB variables từ `tests/.env`; `ddl-auto=validate` không thay đổi schema. JaCoCo line coverage là **508/1,299 (39.11%)**, dưới mục tiêu 60%. Chạy Maven không có DB variables làm context test không thể kết nối.
+- E2E trên cổng 3000: **20/20 passed** ngày 27/11/2026 sau khi thêm `127.0.0.1` vào `allowedDevOrigins` và restart Next.js. Trước khi sửa, Next.js chặn HMR cross-origin nên JavaScript phía client không hydrate.

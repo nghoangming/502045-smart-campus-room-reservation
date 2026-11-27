@@ -1,53 +1,61 @@
 # Tests (Playwright)
 
-Thư mục chứa API test và E2E test của dự án Smart Campus.
+Bộ API/E2E test cho Smart Campus. Test không tạo hoặc sửa schema/database; API tests dùng database đã được cấu hình và chỉ tạo dữ liệu nghiệp vụ cần cho các flow kiểm thử.
 
 ## Yêu cầu
 
-- Node.js 20 trở lên (kiểm tra bằng `node -v`)
+- Node.js 20+
+- Backend đang chạy tại `API_URL` (mặc định `http://localhost:8080`)
+- Database backend đã có migrations và tài khoản demo admin/teacher/student; có phòng lớp học và phòng SELF_STUDY
 
 ## Cài đặt
 
 ```bash
-cd tests
+cd frontend
+npm ci
+cd ../tests
 npm ci
 npx playwright install chromium
 ```
 
-## Cấu hình
-
-Copy `.env.example` thành `.env`, rồi chỉnh nếu cần:
-
-- `BASE_URL`: địa chỉ frontend (mặc định http://localhost:5173)
-- `API_URL`: địa chỉ backend (mặc định http://localhost:8080)
-
-## Chạy test
+## Chạy
 
 ```bash
-npm test             # chạy tất cả
-npm run test:api     # chỉ API test
-npm run test:e2e     # chỉ E2E test (tự bật frontend qua webServer)
-npm run test:pending # chạy cả test @pending (khi backend đã có endpoint)
-npm run report       # mở báo cáo HTML
+npm test
+npm run test:api
+npm run test:e2e
+npm run report
 ```
 
-Biến môi trường hữu ích:
+`test:api` chạy trước `api-setup`, kiểm tra đăng nhập admin và dữ liệu phòng bắt buộc bằng GET. Nó không migrate schema. Trước khi chạy API suite, provision fixture QR/session:
 
-- `SKIP_WEB_SERVER=true`: không tự bật frontend (khi bạn đã chạy `npm run dev` hoặc chỉ chạy API test)
-- `RUN_PENDING=true`: bật các test chờ endpoint (Auth, Schedule, Availability)
+```powershell
+.\scripts\provision-attendance-fixtures.ps1
+npm run test:api
+```
 
-API test cần backend đang chạy ở `API_URL`: `cd backend && mvn spring-boot:run`.
+Script cần `psql`, test DB và tài khoản demo/room types đã có. Script chỉ thêm dữ liệu nghiệp vụ, bao gồm tài khoản phụ `teacher2@smartcampus.test`, booking/session/seat/challenge kiểm thử; không thay schema. Nó ghi fixture ID/code vào `.env`. Chạy suite ngay sau provisioning: mã QR hợp lệ hết hạn sau 2 phút, còn session workflow chỉ dùng được từ phút 5 đến trước phút 20. Không chạy trên production DB.
+
+`test:e2e` tự chạy frontend qua `webServer`; có thể đặt `SKIP_WEB_SERVER=true` nếu frontend đã chạy. Các browser workflow dùng API responses được mock để kiểm tra hành vi UI; integration với backend thật được kiểm tra riêng trong project `api`.
+
+## Biến môi trường API
+
+- `API_URL`, `BASE_URL`: URL backend/frontend.
+- `WEB_PORT`: cổng Next.js dev server khi chạy E2E (mặc định 5173).
+- `TEST_ADMIN_EMAIL`, `TEST_ADMIN_PASSWORD`: mặc định `admin@smartcampus.test` / `Admin@123`.
+- `TEST_TEACHER_EMAIL`, `TEST_TEACHER_PASSWORD`: mặc định `teacher@smartcampus.test` / `Teacher@123`.
+- `TEST_STUDENT_EMAIL`, `TEST_STUDENT_PASSWORD`: mặc định `student@smartcampus.test` / `Student@123`.
+- `TEST_STUDENT2_EMAIL`, `TEST_STUDENT2_PASSWORD`: tài khoản sinh viên thứ hai bật race test hai người.
+- QR valid/invalid/expired/wrong-class, tạo challenge/check-in, finalize attendance và hai quy tắc khóa ghế sau khi kết thúc đều lấy fixture từ script provisioning; các ID/code sinh ra được ghi vào `.env`.
+- Các test tạo phòng/booking/resource ghi dữ liệu qua API và cần database kiểm thử riêng. Không chạy import CSV hợp lệ hoặc gửi email thật trong bộ contract mặc định; verify email/reset token cần mailbox test có khả năng đọc token.
 
 ## Cấu trúc
 
-- `api/<module>/`: API test theo module (health, auth, rooms, reservations, seats, attendance)
-- `e2e/<flow>/`: E2E test theo luồng (login, booking, seat-booking, qr-checkin, notification)
-- `fixtures/`: dữ liệu test dùng chung
-- `helpers/`: hàm hỗ trợ (login, API client...)
+- `api/`: API contract và workflow tests (auth, phòng/lịch/đặt phòng, duyệt lớp, ghế, QR/điểm danh, CSV/recovery, resources, absences, incidents, notifications).
+- `e2e/`: browser tests cho login, lịch, booking phòng, ghế, QR, incident, notification, duyệt booking và resource CRUD/status.
+- `setup/`: kiểm tra prerequisite chỉ đọc trước API suite.
+- `helpers/`, `fixtures/`: API/JWT và dữ liệu dùng chung.
 
-## Quy ước
+Các flow ghi dữ liệu (reservation, incident, resource) nên chạy trên database kiểm thử riêng hoặc dữ liệu đã dành cho test; các endpoint hiện có không hỗ trợ xóa lịch sử incident.
 
-- File test đặt tên `*.spec.ts`
-- Tên test mô tả hành vi, ví dụ: `đặt phòng trùng giờ bị từ chối`
-- Test cho endpoint chưa có dùng `pending(...)` trong `helpers/pending.ts` (mặc định skip)
-- Không hard-code id phòng, dùng helper `firstRoomId`
+CI API job đọc kết nối từ secrets CI_DB_URL, CI_DB_USER, CI_DB_PASSWORD, CI_JWT_SECRET và không tạo schema/chạy migrations. Fixture SQL chỉ thêm dữ liệu trên test DB; principal CI cần quyền cho fixture setup. JaCoCo HTML/XML report được tạo tại `backend/target/site/jacoco` bằng `mvn verify`.
