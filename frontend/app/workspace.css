@@ -1820,8 +1820,13 @@
   border-radius: 18px
 }
 
-.auth-action-card h1 { margin: 20px 0 8px }
-.auth-action-card p { line-height: 1.6 }
+.auth-action-card h1 {
+  margin: 20px 0 8px
+}
+
+.auth-action-card p {
+  line-height: 1.6
+}
 
 .auth-form-wrap h2 {
   font: 800 28px 'Inter', sans-serif;
@@ -8260,11 +8265,11 @@
   border-top: 4px solid #167b82;
 }
 
-.ws-absence-page[data-role="teacher"] .ws-absence-form > .ws-panel-header {
+.ws-absence-page[data-role="teacher"] .ws-absence-form>.ws-panel-header {
   background: linear-gradient(105deg, #fff1f4, #f8fbfc);
 }
 
-.ws-absence-page[data-role="teacher"] .ws-absence-list > .ws-panel-header {
+.ws-absence-page[data-role="teacher"] .ws-absence-list>.ws-panel-header {
   background: linear-gradient(105deg, #e8f5f4, #f8fbfc);
 }
 
@@ -8638,7 +8643,7 @@
   background: #edf5f8;
 }
 
-.ws-attendance-finalize > div {
+.ws-attendance-finalize>div {
   display: flex;
   align-items: center;
   gap: 13px;
@@ -8674,7 +8679,7 @@
   background: #f5f9fb;
 }
 
-.ws-attendance-correction > div {
+.ws-attendance-correction>div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -8686,9 +8691,18 @@
 }
 
 @media(max-width:720px) {
-  .ws-attendance-workflow-body { padding: 16px; }
-  .ws-attendance-finalize { align-items: stretch; flex-direction: column; }
-  .ws-attendance-finalize .ws-button { align-self: flex-start; }
+  .ws-attendance-workflow-body {
+    padding: 16px;
+  }
+
+  .ws-attendance-finalize {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .ws-attendance-finalize .ws-button {
+    align-self: flex-start;
+  }
 }
 
 .ws-notification-mark {
@@ -8897,7 +8911,7 @@
     flex-wrap: wrap;
   }
 
-  .ws-resource-row > .ws-resource-actions {
+  .ws-resource-row>.ws-resource-actions {
     width: 100%;
     justify-content: flex-end;
   }
@@ -8908,7 +8922,7 @@
     margin: 0 18px 18px;
   }
 
-  .ws-delete-zone > .ws-button {
+  .ws-delete-zone>.ws-button {
     align-self: flex-start;
   }
 }
@@ -9668,7 +9682,7 @@
   font-weight: 650;
 }
 
-.ws-attendance-toolbar-main > p {
+.ws-attendance-toolbar-main>p {
   margin: 8px 0 0;
   color: #526f80;
   font-size: 13px;
@@ -9763,7 +9777,7 @@
   font-size: 12px;
 }
 
-.ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric {
+.ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric {
   min-height: 258px;
   padding: 21px 20px;
   border: 1px solid #bdd7e1;
@@ -9773,13 +9787,13 @@
   box-shadow: 0 12px 25px #163c5114;
 }
 
-.ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric:nth-child(2) {
+.ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric:nth-child(2) {
   border-color: #b9dccb;
   border-top-color: #238f63;
   background: linear-gradient(160deg, #f7fcf9, #e5f5ec);
 }
 
-.ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric:nth-child(3) {
+.ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric:nth-child(3) {
   border-color: #e6bdc8;
   border-top-color: #bd3655;
   background: linear-gradient(160deg, #fff8fa, #f9e8ed);
@@ -9805,11 +9819,11 @@
   line-height: 1;
 }
 
-.ws-teacher-attendance .ws-attendance-summary .ws-attendance > div:nth-child(2) strong {
+.ws-teacher-attendance .ws-attendance-summary .ws-attendance>div:nth-child(2) strong {
   color: #176e4c;
 }
 
-.ws-teacher-attendance .ws-attendance-summary .ws-attendance > div:nth-child(3) strong {
+.ws-teacher-attendance .ws-attendance-summary .ws-attendance>div:nth-child(3) strong {
   color: #a62949;
 }
 
@@ -9830,7 +9844,7 @@
   box-shadow: 0 11px 28px #153c5314;
 }
 
-.ws-teacher-attendance .ws-attendance-seating > .ws-panel-header {
+.ws-teacher-attendance .ws-attendance-seating>.ws-panel-header {
   padding: 21px 24px;
   background: linear-gradient(100deg, #e9f5f4, #f8fcfd);
   border-bottom-color: #c9dfe4;
@@ -9892,7 +9906,7 @@
   line-height: 1.5;
 }
 
-.ws-teacher-attendance .ws-attendance-seating > .ws-empty {
+.ws-teacher-attendance .ws-attendance-seating>.ws-empty {
   padding: 40px 24px;
 }
 
@@ -9932,11 +9946,11 @@
     grid-column: auto;
   }
 
-  .ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric {
+  .ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric {
     min-height: 190px;
   }
 
-  .ws-teacher-attendance .ws-attendance-seating > .ws-panel-header {
+  .ws-teacher-attendance .ws-attendance-seating>.ws-panel-header {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -10112,12 +10126,35 @@
   background: #fff;
 }
 
-.ws-room-seat-legend i.taken { border-color: #c9677e; background: #f6dbe1; }
-.ws-room-seat-legend i.present { border-color: #4ca577; background: #d8f0e2; }
-.ws-room-seat-legend i.late { border-color: #d7a34d; background: #fff0ce; }
-.ws-room-seat-legend i.absent { border-color: #d77c69; background: #fce3dc; }
-.ws-room-seat-legend i.excused { border-color: #a899d5; background: #eee9fa; }
-.ws-room-seat-legend i.blocked { border-color: #a9b8c0; background: #dfe6e9; }
+.ws-room-seat-legend i.taken {
+  border-color: #c9677e;
+  background: #f6dbe1;
+}
+
+.ws-room-seat-legend i.present {
+  border-color: #4ca577;
+  background: #d8f0e2;
+}
+
+.ws-room-seat-legend i.late {
+  border-color: #d7a34d;
+  background: #fff0ce;
+}
+
+.ws-room-seat-legend i.absent {
+  border-color: #d77c69;
+  background: #fce3dc;
+}
+
+.ws-room-seat-legend i.excused {
+  border-color: #a899d5;
+  background: #eee9fa;
+}
+
+.ws-room-seat-legend i.blocked {
+  border-color: #a9b8c0;
+  background: #dfe6e9;
+}
 
 @media (max-width: 650px) {
   .ws-room-seat-layout {
@@ -10132,11 +10169,11 @@
 }
 
 /* Portal lists: readable rows with the same density across roles. */
-.ws-root .ws-absence-list > .ws-panel-header h3,
-.ws-root .ws-incident-page > .ws-panel > .ws-panel-header h3,
-.ws-root .ws-student-booking-history > .ws-panel-header h3,
-.ws-root .ws-attendance-workflow > .ws-panel-header h3,
-.ws-root .ws-booking-layout > .ws-panel > .ws-panel-header h3 {
+.ws-root .ws-absence-list>.ws-panel-header h3,
+.ws-root .ws-incident-page>.ws-panel>.ws-panel-header h3,
+.ws-root .ws-student-booking-history>.ws-panel-header h3,
+.ws-root .ws-attendance-workflow>.ws-panel-header h3,
+.ws-root .ws-booking-layout>.ws-panel>.ws-panel-header h3 {
   font-size: 19px;
 }
 
@@ -10200,7 +10237,7 @@
   padding: 6px 20px;
 }
 
-.ws-root .ws-student-history-list > div {
+.ws-root .ws-student-history-list>div {
   padding: 13px 0;
 }
 
@@ -10232,14 +10269,14 @@
   gap: 7px;
 }
 
-.ws-root .ws-absence-item-main > small,
+.ws-root .ws-absence-item-main>small,
 .ws-root .ws-incident-card-main small {
   color: #607d8e;
   font-size: 13px;
 }
 
 .ws-root .ws-absence-empty,
-.ws-root .ws-incident-list > .ws-notification-empty {
+.ws-root .ws-incident-list>.ws-notification-empty {
   padding: 22px;
   font-size: 14px;
 }
@@ -10262,6 +10299,7 @@
 }
 
 @media (max-width: 650px) {
+
   .ws-root .ws-absence-items,
   .ws-root .ws-incident-list {
     padding: 13px;
@@ -10289,11 +10327,27 @@
   row-gap: 8px;
   padding: 18px 20px;
 }
-.ws-root .ws-metric-icon { width: 38px; height: 38px; }
-.ws-root .ws-metric-icon svg { width: 19px; height: 19px; }
-.ws-root .ws-metric-arrow { top: 27px; right: 20px; }
+
+.ws-root .ws-metric-icon {
+  width: 38px;
+  height: 38px;
+}
+
+.ws-root .ws-metric-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.ws-root .ws-metric-arrow {
+  top: 27px;
+  right: 20px;
+}
+
 .ws-root .ws-metric-label,
-.ws-role-student .ws-student-summary button span { font-size: 16px; }
+.ws-role-student .ws-student-summary button span {
+  font-size: 16px;
+}
+
 .ws-root .ws-metric strong,
 .ws-role-student .ws-student-summary button strong {
   align-self: center;
@@ -10301,23 +10355,34 @@
   font-size: 40px;
   letter-spacing: -1px;
 }
+
 .ws-root .ws-metric small,
 .ws-role-student .ws-student-summary button small {
   padding-top: 0;
   font-size: 13px;
 }
 
-.ws-admin-editor .ws-detail-head { padding: 22px 27px; }
-.ws-admin-editor .ws-detail-head h3 { font-size: 23px; }
+.ws-admin-editor .ws-detail-head {
+  padding: 22px 27px;
+}
+
+.ws-admin-editor .ws-detail-head h3 {
+  font-size: 23px;
+}
+
 .ws-admin-editor .ws-room-form {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 17px 20px;
   padding: 24px 27px 27px;
 }
+
 .ws-room-form .ws-form-note,
 .ws-room-form .ws-form-error,
-.ws-room-form .ws-form-actions { grid-column: 1 / -1; }
+.ws-room-form .ws-form-actions {
+  grid-column: 1 / -1;
+}
+
 .ws-room-form .ws-form-note {
   margin: 0;
   padding: 11px 14px;
@@ -10325,10 +10390,19 @@
   border-radius: 10px;
   background: #edf6f8;
 }
-.ws-room-form .ws-form-actions { margin-top: 2px; }
 
-.ws-resource-content { padding: 17px 22px 22px; }
-.ws-resource-heading { margin-bottom: 12px; }
+.ws-room-form .ws-form-actions {
+  margin-top: 2px;
+}
+
+.ws-resource-content {
+  padding: 17px 22px 22px;
+}
+
+.ws-resource-heading {
+  margin-bottom: 12px;
+}
+
 .ws-resource-row {
   display: grid;
   grid-template-columns: minmax(150px, 1fr) minmax(140px, 175px) auto;
@@ -10340,10 +10414,25 @@
   border-radius: 11px;
   background: #fff;
 }
-.ws-resource-info strong { color: #17394e; font-size: 15px; }
-.ws-resource-info small { color: #607c8c; font-size: 13px; }
-.ws-resource-actions { justify-content: flex-end; }
-.ws-resource-actions .ws-row-action { white-space: nowrap; }
+
+.ws-resource-info strong {
+  color: #17394e;
+  font-size: 15px;
+}
+
+.ws-resource-info small {
+  color: #607c8c;
+  font-size: 13px;
+}
+
+.ws-resource-actions {
+  justify-content: flex-end;
+}
+
+.ws-resource-actions .ws-row-action {
+  white-space: nowrap;
+}
+
 .ws-resource-create {
   margin-top: 17px;
   padding: 19px;
@@ -10352,8 +10441,16 @@
   background: #f2f8fa;
 }
 
-.ws-password-input { position: relative; display: block; }
-.ws-password-input input { width: 100%; padding-right: 48px; }
+.ws-password-input {
+  position: relative;
+  display: block;
+}
+
+.ws-password-input input {
+  width: 100%;
+  padding-right: 48px;
+}
+
 .ws-password-input button {
   position: absolute;
   top: 50%;
@@ -10369,17 +10466,43 @@
   color: #537288;
   cursor: pointer;
 }
-.ws-password-input button:hover,
-.ws-password-input button:focus-visible { background: #e5f0f4; color: #b7193b; }
 
-.ws-role-teacher .ws-absence-page { gap: 16px; }
-.ws-role-teacher .ws-absence-form > .ws-panel-header,
-.ws-role-teacher .ws-absence-list > .ws-panel-header { padding: 15px 22px; }
-.ws-role-teacher .ws-absence-page .ws-panel-header h3 { font-size: 19px; }
-.ws-role-teacher .ws-absence-form form { padding: 18px 22px; gap: 13px 17px; }
-.ws-role-teacher .ws-absence-form textarea { min-height: 74px; }
-.ws-role-teacher .ws-absence-own { margin: 0 22px 20px; padding: 13px 17px; }
-.ws-role-teacher .ws-absence-empty { padding: 18px 22px; }
+.ws-password-input button:hover,
+.ws-password-input button:focus-visible {
+  background: #e5f0f4;
+  color: #b7193b;
+}
+
+.ws-role-teacher .ws-absence-page {
+  gap: 16px;
+}
+
+.ws-role-teacher .ws-absence-form>.ws-panel-header,
+.ws-role-teacher .ws-absence-list>.ws-panel-header {
+  padding: 15px 22px;
+}
+
+.ws-role-teacher .ws-absence-page .ws-panel-header h3 {
+  font-size: 19px;
+}
+
+.ws-role-teacher .ws-absence-form form {
+  padding: 18px 22px;
+  gap: 13px 17px;
+}
+
+.ws-role-teacher .ws-absence-form textarea {
+  min-height: 74px;
+}
+
+.ws-role-teacher .ws-absence-own {
+  margin: 0 22px 20px;
+  padding: 13px 17px;
+}
+
+.ws-role-teacher .ws-absence-empty {
+  padding: 18px 22px;
+}
 
 .ws-booking-detail-meta {
   display: grid;
@@ -10387,7 +10510,8 @@
   gap: 12px;
   margin: 16px 0;
 }
-.ws-booking-detail-meta > div,
+
+.ws-booking-detail-meta>div,
 .ws-booking-session {
   display: grid;
   align-content: start;
@@ -10397,15 +10521,39 @@
   border-radius: 10px;
   background: #f4f9fb;
 }
+
 .ws-booking-detail-meta small,
-.ws-booking-session small { color: #58778a; font-size: 11px; font-weight: 800; letter-spacing: .07em; }
+.ws-booking-session small {
+  color: #58778a;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+
 .ws-booking-detail-meta strong,
-.ws-booking-session strong { color: #17394e; font-size: 15px; }
+.ws-booking-session strong {
+  color: #17394e;
+  font-size: 15px;
+}
+
 .ws-booking-detail-meta span:not(.ws-tag),
-.ws-booking-session span { color: #607c8c; font-size: 13px; }
-.ws-booking-detail-meta .ws-tag { justify-self: start; }
-.ws-booking-conflict { color: #30745f; font-weight: 700; }
-.ws-booking-conflict.has-conflict { color: #b7193b; }
+.ws-booking-session span {
+  color: #607c8c;
+  font-size: 13px;
+}
+
+.ws-booking-detail-meta .ws-tag {
+  justify-self: start;
+}
+
+.ws-booking-conflict {
+  color: #30745f;
+  font-weight: 700;
+}
+
+.ws-booking-conflict.has-conflict {
+  color: #b7193b;
+}
 
 /* Mobile portal: a readable account row and compact overview cards. */
 @media (max-width: 650px) {
@@ -10442,13 +10590,13 @@
     height: 26px;
   }
 
-  .ws-qr-visual > strong {
+  .ws-qr-visual>strong {
     grid-column: 2;
     grid-row: 1;
     font-size: 15px;
   }
 
-  .ws-qr-visual > p {
+  .ws-qr-visual>p {
     grid-column: 2;
     grid-row: 2;
     font-size: 12px;
@@ -10494,7 +10642,7 @@
     flex: none;
   }
 
-  .ws-header-main .ws-brand > span:last-child {
+  .ws-header-main .ws-brand>span:last-child {
     min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -10566,9 +10714,15 @@
     max-width: 410px;
   }
 
-  .ws-notification-row { min-height: 0; padding: 10px 12px; }
+  .ws-notification-row {
+    min-height: 0;
+    padding: 10px 12px;
+  }
+
   .ws-notification-empty,
-  .ws-notification-error { padding: 16px 12px; }
+  .ws-notification-error {
+    padding: 16px 12px;
+  }
 
   .ws-overview,
   .ws-student-summary {
@@ -10591,15 +10745,23 @@
   }
 
   .ws-root .ws-metric-icon,
-  .ws-role-student .ws-student-summary button > svg:first-child {
+  .ws-role-student .ws-student-summary button>svg:first-child {
     grid-column: 1;
     grid-row: 1 / -1;
     align-self: center;
   }
 
-  .ws-root .ws-metric-icon { width: 30px; height: 30px; border-radius: 8px; }
+  .ws-root .ws-metric-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+  }
+
   .ws-root .ws-metric-icon svg,
-  .ws-role-student .ws-student-summary button > svg:first-child { width: 19px; height: 19px; }
+  .ws-role-student .ws-student-summary button>svg:first-child {
+    width: 19px;
+    height: 19px;
+  }
 
   .ws-root .ws-metric-label,
   .ws-role-student .ws-student-summary button span {
@@ -10648,8 +10810,13 @@
     margin-bottom: 10px;
   }
 
-  .ws-content-head h2 { font-size: 22px; }
-  .ws-content-head .ws-section-kicker { font-size: 12px; }
+  .ws-content-head h2 {
+    font-size: 22px;
+  }
+
+  .ws-content-head .ws-section-kicker {
+    font-size: 12px;
+  }
 
   .ws-root .ws-panel,
   .ws-root .ws-room-card,
@@ -10657,29 +10824,62 @@
     border-radius: 10px;
   }
 
-  .ws-root .ws-detail { padding: 12px; }
-  .ws-root .ws-form { gap: 9px; }
-  .ws-root .ws-field { min-width: 0; gap: 4px; font-size: 12px; }
+  .ws-root .ws-detail {
+    padding: 12px;
+  }
+
+  .ws-root .ws-form {
+    gap: 9px;
+  }
+
+  .ws-root .ws-field {
+    min-width: 0;
+    gap: 4px;
+    font-size: 12px;
+  }
+
   .ws-root .ws-field input,
   .ws-root .ws-field select,
-  .ws-root .ws-field textarea { width: 100%; min-width: 0; }
-  .ws-root .ws-form-actions { padding-top: 2px; }
+  .ws-root .ws-field textarea {
+    width: 100%;
+    min-width: 0;
+  }
 
-  .ws-booking-layout { gap: 10px; }
-  .ws-booking-layout .ws-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ws-root .ws-form-actions {
+    padding-top: 2px;
+  }
+
+  .ws-booking-layout {
+    gap: 10px;
+  }
+
+  .ws-booking-layout .ws-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .ws-booking-layout .ws-field.span-two,
   .ws-booking-layout .ws-form-actions,
-  .ws-booking-layout .ws-form-error { grid-column: 1 / -1; }
-  .ws-booking-layout .ws-form > .ws-field:nth-of-type(4) { grid-column: 1 / -1; }
+  .ws-booking-layout .ws-form-error {
+    grid-column: 1 / -1;
+  }
 
-  .ws-student-booking-body .ws-form { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .ws-student-booking-body .ws-form > .ws-field:first-child,
+  .ws-booking-layout .ws-form>.ws-field:nth-of-type(4) {
+    grid-column: 1 / -1;
+  }
+
+  .ws-student-booking-body .ws-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ws-student-booking-body .ws-form>.ws-field:first-child,
   .ws-student-booking-body .ws-form-actions,
-  .ws-student-booking-body .ws-form-error { grid-column: 1 / -1; }
+  .ws-student-booking-body .ws-form-error {
+    grid-column: 1 / -1;
+  }
 
   .ws-root .ws-panel-header,
-  .ws-role-teacher .ws-absence-form > .ws-panel-header,
-  .ws-role-teacher .ws-absence-list > .ws-panel-header {
+  .ws-role-teacher .ws-absence-form>.ws-panel-header,
+  .ws-role-teacher .ws-absence-list>.ws-panel-header {
     gap: 8px;
     padding: 10px 12px;
   }
@@ -10695,92 +10895,312 @@
     line-height: 1.4;
   }
 
-  .ws-root .ws-activity { padding: 2px 12px 5px; }
-  .ws-root .ws-activity-row { gap: 8px; padding: 8px 0; }
-  .ws-root .ws-activity-row strong { font-size: 13px; }
-  .ws-root .ws-activity-row small { font-size: 11px; }
-  .ws-student-upcoming { padding: 2px 12px 5px; }
-  .ws-student-upcoming > div { gap: 8px; padding: 8px 0; }
-  .ws-student-day { min-width: 45px; height: 40px; font-size: 12px; }
-  .ws-student-upcoming strong { font-size: 13px; }
-  .ws-student-upcoming span { font-size: 11px; }
+  .ws-root .ws-activity {
+    padding: 2px 12px 5px;
+  }
+
+  .ws-root .ws-activity-row {
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .ws-root .ws-activity-row strong {
+    font-size: 13px;
+  }
+
+  .ws-root .ws-activity-row small {
+    font-size: 11px;
+  }
+
+  .ws-student-upcoming {
+    padding: 2px 12px 5px;
+  }
+
+  .ws-student-upcoming>div {
+    gap: 8px;
+    padding: 8px 0;
+  }
+
+  .ws-student-day {
+    min-width: 45px;
+    height: 40px;
+    font-size: 12px;
+  }
+
+  .ws-student-upcoming strong {
+    font-size: 13px;
+  }
+
+  .ws-student-upcoming span {
+    font-size: 11px;
+  }
 
   .ws-student-next,
-  .ws-highlight { padding: 13px; }
+  .ws-highlight {
+    padding: 13px;
+  }
+
   .ws-student-next h3,
-  .ws-highlight h3 { margin: 7px 0 4px; font-size: 17px; }
+  .ws-highlight h3 {
+    margin: 7px 0 4px;
+    font-size: 17px;
+  }
+
   .ws-student-next p,
-  .ws-highlight p { font-size: 12px; line-height: 1.4; }
+  .ws-highlight p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   .ws-student-next button,
-  .ws-highlight button { margin-top: 6px; font-size: 12px; }
+  .ws-highlight button {
+    margin-top: 6px;
+    font-size: 12px;
+  }
 
   .ws-root .ws-session-card {
     min-height: 0;
     padding: 10px 12px;
   }
 
-  .ws-root .ws-session-card h3 { font-size: 14px; }
+  .ws-root .ws-session-card h3 {
+    font-size: 14px;
+  }
+
   .ws-student-schedule-toolbar,
-  .ws-teacher-calendar-head { padding: 10px 12px; }
-  .ws-calendar .ws-week-navigator { padding: 10px 12px; }
-  .ws-calendar-days { gap: 6px; padding: 8px; }
-  .ws-calendar-day { min-height: 62px; gap: 3px; padding: 8px 9px; }
-  .ws-calendar-day > span:first-child { font-size: 13px; }
-  .ws-calendar-day > strong { font-size: 12px; }
-  .ws-calendar-day .ws-calendar-dots { gap: 4px; grid-template-rows: repeat(4, 7px); grid-auto-columns: 7px; }
-  .ws-calendar-day .ws-calendar-dots i { width: 7px; height: 7px; }
-  .ws-calendar-legend { gap: 5px; padding: 8px 10px; }
-  .ws-calendar-detail-head h3 { font-size: 17px; }
-  .ws-student-session { gap: 8px; padding: 10px 12px; }
-  .ws-student-session-date { padding: 6px; }
-  .ws-student-session-date strong { font-size: 15px; }
-  .ws-student-session-content h3 { font-size: 14px; }
-  .ws-student-session-content p { font-size: 11px; }
+  .ws-teacher-calendar-head {
+    padding: 10px 12px;
+  }
+
+  .ws-calendar .ws-week-navigator {
+    padding: 10px 12px;
+  }
+
+  .ws-calendar-days {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .ws-calendar-day {
+    min-height: 62px;
+    gap: 3px;
+    padding: 8px 9px;
+  }
+
+  .ws-calendar-day>span:first-child {
+    font-size: 13px;
+  }
+
+  .ws-calendar-day>strong {
+    font-size: 12px;
+  }
+
+  .ws-calendar-day .ws-calendar-dots {
+    gap: 4px;
+    grid-template-rows: repeat(4, 7px);
+    grid-auto-columns: 7px;
+  }
+
+  .ws-calendar-day .ws-calendar-dots i {
+    width: 7px;
+    height: 7px;
+  }
+
+  .ws-calendar-legend {
+    gap: 5px;
+    padding: 8px 10px;
+  }
+
+  .ws-calendar-detail-head h3 {
+    font-size: 17px;
+  }
+
+  .ws-student-session {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .ws-student-session-date {
+    padding: 6px;
+  }
+
+  .ws-student-session-date strong {
+    font-size: 15px;
+  }
+
+  .ws-student-session-content h3 {
+    font-size: 14px;
+  }
+
+  .ws-student-session-content p {
+    font-size: 11px;
+  }
+
   .ws-root .ws-calendar-class,
-  .ws-calendar-main { min-height: 0; gap: 8px; padding: 9px 10px; }
-  .ws-calendar-detail { padding: 11px 10px 14px; }
+  .ws-calendar-main {
+    min-height: 0;
+    gap: 8px;
+    padding: 9px 10px;
+  }
 
-  .ws-room-card-top { height: 54px; min-height: 54px; padding: 9px 11px; }
-  .ws-room-card-top:after { width: 65px; height: 40px; }
-  .ws-room-code { width: 36px; height: 27px; font-size: 11px; }
-  .ws-room-card-body { padding: 10px 12px 12px; }
-  .ws-room-card-body h3 { font-size: 14px; }
-  .ws-room-card-body p { font-size: 11px; }
-  .ws-room-card-body .ws-row-action { margin-top: 9px; }
-  .ws-student-booking-body { padding: 12px; }
-  .ws-study-room-list { gap: 7px; margin-bottom: 9px; }
-  .ws-study-room-list button { min-height: 58px; padding: 9px 11px; }
-  .ws-study-room-info { gap: 6px 10px; margin-bottom: 10px; padding: 9px 11px; }
-  .ws-student-seat-tools { gap: 8px; }
-  .ws-student-seat-panel .ws-panel-header h3 { margin: 3px 0; }
-  .ws-room-seat-layout { padding: 12px 8px; }
-  .ws-root .ws-student-history-list { padding: 2px 12px; }
-  .ws-root .ws-student-history-list > div { padding: 8px 0; }
+  .ws-calendar-detail {
+    padding: 11px 10px 14px;
+  }
 
-  .ws-teacher-day-head { padding: 10px 12px; }
-  .ws-teacher-day-content { gap: 6px; padding: 8px; }
-  .ws-teacher-class { min-height: 0; gap: 5px; padding: 9px 30px 9px 11px; }
-  .ws-teacher-class strong { font-size: 13px; }
+  .ws-room-card-top {
+    height: 54px;
+    min-height: 54px;
+    padding: 9px 11px;
+  }
 
-  .ws-attendance-summary { gap: 7px; margin-bottom: 9px; }
-  .ws-attendance-summary .ws-qr-display { gap: 7px; padding: 10px 12px; }
-  .ws-attendance-summary .ws-qr-display h3 { font-size: 15px; }
-  .ws-root .ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric {
+  .ws-room-card-top:after {
+    width: 65px;
+    height: 40px;
+  }
+
+  .ws-room-code {
+    width: 36px;
+    height: 27px;
+    font-size: 11px;
+  }
+
+  .ws-room-card-body {
+    padding: 10px 12px 12px;
+  }
+
+  .ws-room-card-body h3 {
+    font-size: 14px;
+  }
+
+  .ws-room-card-body p {
+    font-size: 11px;
+  }
+
+  .ws-room-card-body .ws-row-action {
+    margin-top: 9px;
+  }
+
+  .ws-student-booking-body {
+    padding: 12px;
+  }
+
+  .ws-study-room-list {
+    gap: 7px;
+    margin-bottom: 9px;
+  }
+
+  .ws-study-room-list button {
+    min-height: 58px;
+    padding: 9px 11px;
+  }
+
+  .ws-study-room-info {
+    gap: 6px 10px;
+    margin-bottom: 10px;
+    padding: 9px 11px;
+  }
+
+  .ws-student-seat-tools {
+    gap: 8px;
+  }
+
+  .ws-student-seat-panel .ws-panel-header h3 {
+    margin: 3px 0;
+  }
+
+  .ws-room-seat-layout {
+    padding: 12px 8px;
+  }
+
+  .ws-root .ws-student-history-list {
+    padding: 2px 12px;
+  }
+
+  .ws-root .ws-student-history-list>div {
+    padding: 8px 0;
+  }
+
+  .ws-teacher-day-head {
+    padding: 10px 12px;
+  }
+
+  .ws-teacher-day-content {
+    gap: 6px;
+    padding: 8px;
+  }
+
+  .ws-teacher-class {
+    min-height: 0;
+    gap: 5px;
+    padding: 9px 30px 9px 11px;
+  }
+
+  .ws-teacher-class strong {
+    font-size: 13px;
+  }
+
+  .ws-attendance-summary {
+    gap: 7px;
+    margin-bottom: 9px;
+  }
+
+  .ws-attendance-summary .ws-qr-display {
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  .ws-attendance-summary .ws-qr-display h3 {
+    font-size: 15px;
+  }
+
+  .ws-root .ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric {
     min-height: 0;
     padding: 9px 11px;
   }
-  .ws-attendance-metric-icon { margin-bottom: 5px; }
-  .ws-attendance-summary .ws-attendance strong { font-size: 24px; }
-  .ws-attendance-meter { margin-top: 6px; }
+
+  .ws-attendance-metric-icon {
+    margin-bottom: 5px;
+  }
+
+  .ws-attendance-summary .ws-attendance strong {
+    font-size: 24px;
+  }
+
+  .ws-attendance-meter {
+    margin-top: 6px;
+  }
 
   .ws-absence-page,
-  .ws-incident-page { gap: 9px; }
-  .ws-absence-intro { gap: 8px; padding: 11px 12px; border-radius: 10px; }
-  .ws-absence-icon { width: 34px; height: 34px; border-radius: 8px; }
-  .ws-absence-intro h3 { font-size: 15px; }
-  .ws-absence-intro p { font-size: 12px; line-height: 1.4; }
+  .ws-incident-page {
+    gap: 9px;
+  }
+
+  .ws-absence-intro {
+    gap: 8px;
+    padding: 11px 12px;
+    border-radius: 10px;
+  }
+
+  .ws-absence-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .ws-absence-intro h3 {
+    font-size: 15px;
+  }
+
+  .ws-absence-intro p {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
   .ws-role-teacher .ws-absence-form form,
-  .ws-incident-page .ws-form { padding: 11px 12px; }
+  .ws-incident-page .ws-form {
+    padding: 11px 12px;
+  }
+
   .ws-role-teacher .ws-absence-form-footer {
     flex-direction: row;
     align-items: center;
@@ -10788,167 +11208,419 @@
     font-size: 11px;
     line-height: 1.35;
   }
+
   .ws-role-teacher .ws-absence-form-footer .ws-button {
     width: auto;
     min-width: 112px;
     padding-inline: 9px;
   }
-  .ws-role-teacher .ws-absence-own { margin: 0 12px 10px; padding: 10px 11px; }
-  .ws-role-teacher .ws-absence-list > .ws-panel-header {
+
+  .ws-role-teacher .ws-absence-own {
+    margin: 0 12px 10px;
+    padding: 10px 11px;
+  }
+
+  .ws-role-teacher .ws-absence-list>.ws-panel-header {
     display: grid;
     grid-template-columns: minmax(0, 1fr);
   }
+
   .ws-role-teacher .ws-absence-list-actions {
     justify-content: flex-start;
   }
-  .ws-root .ws-absence-items,
-  .ws-root .ws-incident-list { gap: 7px; padding: 10px 12px; }
-  .ws-root .ws-absence-item,
-  .ws-root .ws-incident-card { gap: 8px; padding: 10px 12px; }
-  .ws-incident-card-main h4 { margin: 5px 0; font-size: 14px; }
-  .ws-incident-card-main p { margin-bottom: 5px; font-size: 12px; }
 
-  .ws-intake-panel { padding: 12px; }
-  .ws-intake-list { gap: 7px; margin-top: 9px; }
-  .ws-intake-card { gap: 8px; padding: 10px; }
-  .ws-intake-card strong { font-size: 13px; }
-  .ws-resource-row { gap: 8px; padding: 10px; }
-  .ws-resource-create { margin-top: 10px; padding: 11px; }
-  .ws-booking-detail-meta { gap: 7px; margin: 9px 0; }
-  .ws-booking-detail-meta > div,
-  .ws-booking-session { padding: 9px 11px; }
+  .ws-root .ws-absence-items,
+  .ws-root .ws-incident-list {
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  .ws-root .ws-absence-item,
+  .ws-root .ws-incident-card {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
+  .ws-incident-card-main h4 {
+    margin: 5px 0;
+    font-size: 14px;
+  }
+
+  .ws-incident-card-main p {
+    margin-bottom: 5px;
+    font-size: 12px;
+  }
+
+  .ws-intake-panel {
+    padding: 12px;
+  }
+
+  .ws-intake-list {
+    gap: 7px;
+    margin-top: 9px;
+  }
+
+  .ws-intake-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .ws-intake-card strong {
+    font-size: 13px;
+  }
+
+  .ws-resource-row {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .ws-resource-create {
+    margin-top: 10px;
+    padding: 11px;
+  }
+
+  .ws-booking-detail-meta {
+    gap: 7px;
+    margin: 9px 0;
+  }
+
+  .ws-booking-detail-meta>div,
+  .ws-booking-session {
+    padding: 9px 11px;
+  }
 
   .ws-root .ws-account-sidebar,
-  .ws-root .ws-account-panel { border-radius: 12px; }
-  .ws-root .ws-account-sidebar { padding: 11px; }
-  .ws-root .ws-account-panel { min-height: 0; padding: 12px; }
-  .ws-root .ws-account-panel-head { gap: 8px; padding-bottom: 10px; }
-  .ws-root .ws-account-panel-icon { width: 32px; height: 32px; }
-  .ws-root .ws-account-panel-head h2 { font-size: 16px; }
-  .ws-root .ws-account-summary { gap: 9px; padding-top: 11px; }
-  .ws-account-form { padding-top: 12px; }
+  .ws-root .ws-account-panel {
+    border-radius: 12px;
+  }
+
+  .ws-root .ws-account-sidebar {
+    padding: 11px;
+  }
+
+  .ws-root .ws-account-panel {
+    min-height: 0;
+    padding: 12px;
+  }
+
+  .ws-root .ws-account-panel-head {
+    gap: 8px;
+    padding-bottom: 10px;
+  }
+
+  .ws-root .ws-account-panel-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ws-root .ws-account-panel-head h2 {
+    font-size: 16px;
+  }
+
+  .ws-root .ws-account-summary {
+    gap: 9px;
+    padding-top: 11px;
+  }
+
+  .ws-account-form {
+    padding-top: 12px;
+  }
 
   .ws-root .ws-table th,
-  .ws-root .ws-table td { padding: 8px 10px; }
-  .ws-room-dialog > .ws-detail-head { padding: 12px; }
-  .ws-room-dialog > .ws-detail-grid { gap: 7px; padding: 10px 12px; }
-  .ws-room-dialog > .ws-detail-grid > div { padding: 9px 11px; }
-  .ws-room-dialog > .ws-inline-actions { padding: 10px 12px; }
-  .ws-room-dialog > .ws-resource-section { margin: 0 12px 12px; }
+  .ws-root .ws-table td {
+    padding: 8px 10px;
+  }
 
-  .ws-root .ws-empty { padding: 18px 12px; }
+  .ws-room-dialog>.ws-detail-head {
+    padding: 12px;
+  }
+
+  .ws-room-dialog>.ws-detail-grid {
+    gap: 7px;
+    padding: 10px 12px;
+  }
+
+  .ws-room-dialog>.ws-detail-grid>div {
+    padding: 9px 11px;
+  }
+
+  .ws-room-dialog>.ws-inline-actions {
+    padding: 10px 12px;
+  }
+
+  .ws-room-dialog>.ws-resource-section {
+    margin: 0 12px 12px;
+  }
+
+  .ws-root .ws-empty {
+    padding: 18px 12px;
+  }
+
   .ws-student-empty,
   .ws-calendar-empty,
-  .ws-attendance-empty { min-height: 0; padding: 13px 12px; }
-  .ws-teacher-attendance .ws-attendance-seating > .ws-empty { padding: 18px 12px; }
-  .ws-highlight { min-height: 0; }
-  .ws-highlight h3 { margin: 7px 0 4px; }
+  .ws-attendance-empty {
+    min-height: 0;
+    padding: 13px 12px;
+  }
 
-  .ws-student-course-grid { gap: 7px; }
+  .ws-teacher-attendance .ws-attendance-seating>.ws-empty {
+    padding: 18px 12px;
+  }
+
+  .ws-highlight {
+    min-height: 0;
+  }
+
+  .ws-highlight h3 {
+    margin: 7px 0 4px;
+  }
+
+  .ws-student-course-grid {
+    gap: 7px;
+  }
+
   .ws-student-course,
   .ws-student-course:nth-child(3n+2),
   .ws-student-course:nth-child(3n+3) {
     min-height: 0;
     padding: 10px 12px;
   }
-  .ws-student-course h3 { margin: 6px 0; font-size: 14px; }
-  .ws-student-course-meta { gap: 3px 8px; padding-top: 6px; }
-  .ws-student-course > button { margin-top: 6px; }
 
-  .ws-teacher-attendance { gap: 10px; }
-  .ws-teacher-attendance .ws-attendance-toolbar { gap: 8px; padding: 10px 12px; }
+  .ws-student-course h3 {
+    margin: 6px 0;
+    font-size: 14px;
+  }
+
+  .ws-student-course-meta {
+    gap: 3px 8px;
+    padding-top: 6px;
+  }
+
+  .ws-student-course>button {
+    margin-top: 6px;
+  }
+
+  .ws-teacher-attendance {
+    gap: 10px;
+  }
+
+  .ws-teacher-attendance .ws-attendance-toolbar {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
   .ws-teacher-attendance .ws-attendance-summary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 7px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-qr-display {
     grid-column: 1 / -1;
     min-height: 0;
     padding: 11px 12px;
     border-radius: 10px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-qr-display h3 {
     margin: 5px 0 3px;
     font-size: 16px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-qr-display .ws-qr-intro {
     margin-bottom: 6px;
     font-size: 12px;
   }
-  .ws-teacher-attendance .ws-qr-rules { gap: 4px; margin-bottom: 8px; }
-  .ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric {
+
+  .ws-teacher-attendance .ws-qr-rules {
+    gap: 4px;
+    margin-bottom: 8px;
+  }
+
+  .ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric {
     min-height: 0;
     padding: 9px;
     border-radius: 10px;
   }
-  .ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric:nth-child(3) {
+
+  .ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric:nth-child(3) {
     grid-column: 1 / -1;
   }
+
   .ws-teacher-attendance .ws-attendance-metric-icon {
     width: 27px;
     height: 27px;
     margin-bottom: 5px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-attendance strong {
     margin: 3px 0 2px;
     font-size: 23px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-attendance .ws-attendance-metric-label {
     font-size: 10px;
   }
+
   .ws-teacher-attendance .ws-attendance-summary .ws-attendance .ws-attendance-metric-note {
     font-size: 11px;
   }
-  .ws-teacher-attendance .ws-attendance-meter { margin-top: 6px; }
-  .ws-teacher-attendance .ws-attendance-seating > .ws-panel-header { padding: 10px 12px; }
-  .ws-teacher-attendance .ws-attendance-seating .ws-panel-header h3 { font-size: 15px; }
-  .ws-attendance-workflow { margin-top: 9px; }
-  .ws-attendance-workflow-body { gap: 8px; padding: 10px 12px; }
+
+  .ws-teacher-attendance .ws-attendance-meter {
+    margin-top: 6px;
+  }
+
+  .ws-teacher-attendance .ws-attendance-seating>.ws-panel-header {
+    padding: 10px 12px;
+  }
+
+  .ws-teacher-attendance .ws-attendance-seating .ws-panel-header h3 {
+    font-size: 15px;
+  }
+
+  .ws-attendance-workflow {
+    margin-top: 9px;
+  }
+
+  .ws-attendance-workflow-body {
+    gap: 8px;
+    padding: 10px 12px;
+  }
+
   .ws-attendance-finalize,
-  .ws-attendance-correction { gap: 8px; padding: 10px 11px; }
+  .ws-attendance-correction {
+    gap: 8px;
+    padding: 10px 11px;
+  }
 
-  .ws-user-create-tools { gap: 9px; padding: 12px; }
-  .ws-user-create-tools h3 { font-size: 16px; }
-  .ws-import-dialog { margin-bottom: 10px; padding: 12px; }
-  .ws-import-dialog .ws-detail-head { margin-bottom: 9px; padding-bottom: 9px; }
-  .ws-import-dialog .ws-detail-head h3 { font-size: 16px; }
-  .ws-import-dialog .ws-form { gap: 9px; }
-  .ws-intake-empty { margin-top: 9px; padding: 10px; }
+  .ws-user-create-tools {
+    gap: 9px;
+    padding: 12px;
+  }
 
-  .ws-room-schedule-head { gap: 8px; padding: 10px 11px; }
-  .ws-room-schedule-empty { padding: 10px 11px; }
-  .ws-resource-section { margin-top: 10px; }
-  .ws-resource-content { padding: 10px 12px; }
-  .ws-root .ws-account-identity { padding-bottom: 10px; }
-  .ws-account-facts { gap: 6px; margin-bottom: 10px; }
-  .ws-account-facts > div { gap: 4px; padding: 10px; border-radius: 9px; }
+  .ws-user-create-tools h3 {
+    font-size: 16px;
+  }
+
+  .ws-import-dialog {
+    margin-bottom: 10px;
+    padding: 12px;
+  }
+
+  .ws-import-dialog .ws-detail-head {
+    margin-bottom: 9px;
+    padding-bottom: 9px;
+  }
+
+  .ws-import-dialog .ws-detail-head h3 {
+    font-size: 16px;
+  }
+
+  .ws-import-dialog .ws-form {
+    gap: 9px;
+  }
+
+  .ws-intake-empty {
+    margin-top: 9px;
+    padding: 10px;
+  }
+
+  .ws-room-schedule-head {
+    gap: 8px;
+    padding: 10px 11px;
+  }
+
+  .ws-room-schedule-empty {
+    padding: 10px 11px;
+  }
+
+  .ws-resource-section {
+    margin-top: 10px;
+  }
+
+  .ws-resource-content {
+    padding: 10px 12px;
+  }
+
+  .ws-root .ws-account-identity {
+    padding-bottom: 10px;
+  }
+
+  .ws-account-facts {
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .ws-account-facts>div {
+    gap: 4px;
+    padding: 10px;
+    border-radius: 9px;
+  }
 }
 
 @media (max-width: 380px) {
-  .ws-teacher-attendance .ws-attendance-summary { grid-template-columns: 1fr; }
-  .ws-teacher-attendance .ws-attendance-summary .ws-attendance > div.ws-attendance-metric:nth-child(3) { grid-column: auto; }
+  .ws-teacher-attendance .ws-attendance-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-teacher-attendance .ws-attendance-summary .ws-attendance>div.ws-attendance-metric:nth-child(3) {
+    grid-column: auto;
+  }
+
   .ws-booking-layout .ws-form,
-  .ws-student-booking-body .ws-form { grid-template-columns: 1fr; }
+  .ws-student-booking-body .ws-form {
+    grid-template-columns: 1fr;
+  }
+
   .ws-booking-layout .ws-field.span-two,
   .ws-booking-layout .ws-form-actions,
   .ws-booking-layout .ws-form-error,
-  .ws-booking-layout .ws-form > .ws-field:nth-of-type(4),
-  .ws-student-booking-body .ws-form > .ws-field:first-child,
+  .ws-booking-layout .ws-form>.ws-field:nth-of-type(4),
+  .ws-student-booking-body .ws-form>.ws-field:first-child,
   .ws-student-booking-body .ws-form-actions,
-  .ws-student-booking-body .ws-form-error { grid-column: 1; }
+  .ws-student-booking-body .ws-form-error {
+    grid-column: 1;
+  }
 }
 
 @media (max-width: 760px) {
-  .ws-booking-detail-meta { grid-template-columns: 1fr; }
-  .ws-resource-row { grid-template-columns: minmax(0, 1fr) minmax(130px, 170px); }
-  .ws-resource-actions { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; }
-}
-@media (max-width: 600px) {
-  .ws-admin-editor .ws-room-form { grid-template-columns: 1fr; padding: 14px; }
-  .ws-room-form .ws-form-actions { grid-column: 1; }
-  .ws-resource-content { padding: 10px 12px; }
-  .ws-resource-row { grid-template-columns: 1fr; }
-  .ws-resource-actions { grid-column: 1; }
-  .ws-resource-create { padding: 11px; }
+  .ws-booking-detail-meta {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-resource-row {
+    grid-template-columns: minmax(0, 1fr) minmax(130px, 170px);
+  }
+
+  .ws-resource-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
 }
 
+@media (max-width: 600px) {
+  .ws-admin-editor .ws-room-form {
+    grid-template-columns: 1fr;
+    padding: 14px;
+  }
+
+  .ws-room-form .ws-form-actions {
+    grid-column: 1;
+  }
+
+  .ws-resource-content {
+    padding: 10px 12px;
+  }
+
+  .ws-resource-row {
+    grid-template-columns: 1fr;
+  }
+
+  .ws-resource-actions {
+    grid-column: 1;
+  }
+
+  .ws-resource-create {
+    padding: 11px;
+  }
+}
