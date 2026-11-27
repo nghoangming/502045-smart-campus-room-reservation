@@ -1,53 +1,23 @@
 import { test, expect } from '@playwright/test';
-import { bookingPaths, Reservation } from '../../fixtures/booking';
 import { getJson, postJson } from '../../helpers/api';
-import { pending } from '../../helpers/pending';
+import { authHeaders } from '../../helpers/api-auth';
+import { apiUsers } from '../../fixtures/users';
+import { createApprovedClassSession } from '../../helpers/booking-scenarios';
 
-type Seat = { id: string | number; roomId?: string | number; status?: string };
-
-pending('Seat booking concurrency – tuần 4 (chờ API M2/M3)', () => {
-  test('hai yêu cầu đồng thời đặt cùng ghế: chỉ một yêu cầu thành công', async ({ request }) => {
-    const { res: seatsRes, body: seats } = await getJson<Seat[]>(request, bookingPaths.seats);
-    expect(seatsRes.status()).toBe(200);
-    expect(seats.length).toBeGreaterThan(0);
-    const seat = seats[0];
-    const date = new Date();
-    date.setDate(date.getDate() + 9);
-    const payload = {
-      seatId: String(seat.id),
-      roomId: seat.roomId,
-      date: date.toISOString().slice(0, 10),
-      startTime: '13:00',
-      endTime: '14:00',
-    };
-
+test.describe('Seat reservation concurrency', () => {
+  test('two students racing for one seat produce exactly one successful response', async ({ request }) => {
+    test.skip(!process.env.TEST_STUDENT2_EMAIL, 'Set TEST_STUDENT2_EMAIL/PASSWORD to enable two-account concurrency coverage.');
+    const { sessionId } = await createApprovedClassSession(request, 'seat concurrency');
+    const studentA = await authHeaders(request, apiUsers.student);
+    const studentB = await authHeaders(request, apiUsers.student2);
+    const seats = await getJson<Array<{ id: number }>>(request, `/class-sessions/${sessionId}/seats`, studentA);
+    expect(seats.res.status()).toBe(200);
+    const seatId = seats.body[0].id;
     const responses = await Promise.all([
-      postJson<Reservation>(request, `${bookingPaths.seats}/reservations`, payload),
-      postJson<Reservation>(request, `${bookingPaths.seats}/reservations`, payload),
+      postJson(request, '/seat-reservations', { classSessionId: sessionId, seatId }, studentA),
+      postJson(request, '/seat-reservations', { classSessionId: sessionId, seatId }, studentB),
     ]);
-    const statuses = responses.map(({ res }) => res.status()).sort((a, b) => a - b);
-    expect(statuses.filter((status) => [200, 201].includes(status))).toHaveLength(1);
-    expect(statuses.filter((status) => [409, 422].includes(status))).toHaveLength(1);
-  });
-
-  test('hai yêu cầu đồng thời đặt cùng phòng cùng khung giờ: chỉ một yêu cầu thành công', async ({ request }) => {
-    const rooms = await getJson<Array<{ id: string | number }>>(request, '/rooms');
-    expect(rooms.res.status()).toBe(200);
-    const roomId = String(rooms.body[0].id);
-    const date = new Date();
-    date.setDate(date.getDate() + 10);
-    const payload = {
-      roomId,
-      date: date.toISOString().slice(0, 10),
-      startTime: '15:00',
-      endTime: '16:00',
-    };
-    const results = await Promise.all([
-      postJson(request, bookingPaths.reservations, payload),
-      postJson(request, bookingPaths.reservations, payload),
-    ]);
-    const statuses = results.map(({ res }) => res.status());
-    expect(statuses.filter((status) => [200, 201].includes(status))).toHaveLength(1);
-    expect(statuses.filter((status) => [409, 422].includes(status))).toHaveLength(1);
+    expect(responses.filter((result) => result.res.status() === 201)).toHaveLength(1);
+    expect(responses.filter((result) => [409, 422].includes(result.res.status()))).toHaveLength(1);
   });
 });

@@ -10,8 +10,8 @@ export function bookingSlot(offsetDays = 3) {
 }
 
 export const bookingPaths = {
-  reservations: '/reservations',
-  seats: '/seats',
+  reservations: '/study-room-reservations',
+  seats: '/class-sessions',
 };
 
 export type Reservation = {

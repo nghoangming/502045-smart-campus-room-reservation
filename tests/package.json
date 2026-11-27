@@ -7,7 +7,6 @@
     "test": "playwright test",
     "test:api": "playwright test --project=api",
     "test:e2e": "playwright test --project=e2e",
-    "test:pending": "RUN_PENDING=true playwright test --project=api",
     "report": "playwright show-report"
   },
   "keywords": [],

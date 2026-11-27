@@ -10,11 +10,15 @@ export const users = {
 
 export const apiUsers = {
   admin: {
-    email: process.env.TEST_ADMIN_EMAIL ?? 'admin@smartcampus.test',
-    password: process.env.TEST_ADMIN_PASSWORD ?? 'Admin@123',
+    email: process.env.TEST_ADMIN_EMAIL || 'admin@smartcampus.test',
+    password: process.env.TEST_ADMIN_PASSWORD || 'Admin@123',
   },
   student: {
-    email: process.env.TEST_STUDENT_EMAIL ?? 'student@smartcampus.test',
-    password: process.env.TEST_STUDENT_PASSWORD ?? 'Student@123',
+    email: process.env.TEST_STUDENT_EMAIL || 'student@smartcampus.test',
+    password: process.env.TEST_STUDENT_PASSWORD || 'Student@123',
+  },
+  student2: {
+    email: process.env.TEST_STUDENT2_EMAIL || 'student2@smartcampus.test',
+    password: process.env.TEST_STUDENT2_PASSWORD || 'Student@123',
   },
 };

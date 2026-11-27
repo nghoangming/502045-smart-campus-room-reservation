@@ -24,8 +24,8 @@ export async function postJson<T = unknown>(
 }
 
 /** Lấy id phòng đầu tiên từ GET /rooms để các test không hard-code id. */
-export async function firstRoomId(request: APIRequestContext): Promise<string> {
-  const { res, body } = await getJson<Array<{ id: string | number }>>(request, '/rooms');
+export async function firstRoomId(request: APIRequestContext, headers: Record<string, string> = {}): Promise<string> {
+  const { res, body } = await getJson<Array<{ id: string | number }>>(request, '/rooms', headers);
   expect(res.status()).toBe(200);
   expect(body.length).toBeGreaterThan(0);
   return String(body[0].id);
