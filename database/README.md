@@ -76,3 +76,7 @@ Chạy `migrations/025_room_status_constraint.sql` một lần sau 024. Phòng c
 ## 026: Khóa ghế sau khi buổi học kết thúc
 
 Chạy `migrations/026_lock_seats_after_class_end.sql` một lần sau 025 trên database đang dùng. Migration thay các hàm giữ, xác nhận, hủy ghế và trigger bảo vệ ghi trực tiếp; dùng `class_sessions.end_time` làm mốc đóng. Không xóa lịch sử ghế hay điểm danh. Sinh viên không thể đặt lại hoặc hủy ghế sau mốc này; việc Admin hủy ghế khi duyệt báo vắng và dọn các hold hết hạn vẫn hoạt động.
+
+## 027–028: Hạn duyệt booking và phân công sự cố
+
+Chạy `027_booking_approval_deadline.sql` rồi `028_incident_staff_routing.sql` trên database đã có 026. Bản 027 chặn duyệt booking khi giờ bắt đầu đã tới, kể cả khi caller bỏ qua API; yêu cầu quá hạn vẫn có thể bị từ chối. Bản 028 giữ nguyên khả năng phân công người xử lý và thêm hai lựa chọn tổ phần cứng/phần mềm trong cùng ô phân công; khoa lấy từ người báo. Hai tổ chỉ là nhãn phân công, không tạo vai trò đăng nhập, trang nhân viên hoặc luồng báo cáo mới. Nếu bản nháp 028 cũ đã tạo role nhân viên, migration dọn role chưa dùng; nếu role đã gắn tài khoản, migration dừng để quản trị viên rà soát tài khoản trước khi chạy lại.

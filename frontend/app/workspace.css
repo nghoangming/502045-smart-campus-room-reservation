@@ -4548,6 +4548,11 @@
   border-color: #c9677e
 }
 
+.ws-student-seat-legend i.holding {
+  background: #e5e0fa;
+  border-color: #8b72c5
+}
+
 .ws-student-seat-legend i.blocked {
   background: #dfe6e9;
   border-color: #a9b8c0
@@ -10068,6 +10073,12 @@
   border-color: #c9677e;
   background: #f6dbe1;
   color: #982c45;
+}
+
+.ws-room-seat-button.holding {
+  border-color: #8b72c5;
+  background: #e5e0fa;
+  color: #594087;
 }
 
 .ws-room-seat-button.late {

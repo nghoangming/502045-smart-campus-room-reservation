@@ -28,14 +28,16 @@ export interface Seat {
 
 export interface Incident {
   id: number;
-  roomId: number;
-  roomCode: string;
-  category: "PROJECTOR" | "AC" | "LIGHTING" | "SOUND" | "OTHER";
+  roomId: number | null;
+  roomCode: string | null;
+  facultyCode?: string | null;
+  category: "PROJECTOR" | "AC" | "LIGHTING" | "SOUND" | "OTHER" | "SOFTWARE";
   description: string;
   reporterName: string;
   priority?: "HIGH" | "MEDIUM" | "LOW";
   status: "OPEN" | "IN_PROGRESS" | "RESOLVED" | "REJECTED";
   reportedBy?: number;
+  assignedTeam?: "HARDWARE" | "SOFTWARE" | null;
   assignedTo?: number | null;
   resourceId?: number | null;
   createdAt: string;

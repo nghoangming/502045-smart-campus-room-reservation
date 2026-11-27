@@ -137,4 +137,19 @@ class ReservationServiceTest {
                 org.mockito.ArgumentMatchers.eq(10L), org.mockito.ArgumentMatchers.eq(7L),
                 org.mockito.ArgumentMatchers.isNull());
     }
+
+    @Test
+    void cannotApproveBookingAfterStartTime() {
+        Booking booking = org.mockito.Mockito.mock(Booking.class);
+        when(bookingRepository.findById(10L)).thenReturn(Optional.of(booking));
+        when(booking.getRoomId()).thenReturn(10L);
+        when(roomRepository.findById(10L)).thenReturn(Optional.of(room));
+        when(room.getType()).thenReturn("LAB");
+        when(booking.getStatus()).thenReturn("PENDING");
+        when(booking.getStartTime()).thenReturn(OffsetDateTime.now().minusMinutes(1));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> reservationService.decide(10L, "CLASSROOM", true, 1L));
+        org.mockito.Mockito.verifyNoInteractions(jdbc);
+    }
 }
