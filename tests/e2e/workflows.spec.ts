@@ -29,6 +29,7 @@ test.describe('Luồng nghiệp vụ trên giao diện', () => {
     const seat = page.getByRole('button', { name: 'Ghế 1: còn trống' });
     await expect(seat).toBeVisible();
     await seat.click();
+    await expect(page.getByText(/Đang giữ ghế 1 · còn/)).toBeVisible();
     await page.getByRole('button', { name: 'Xác nhận ghế' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByText('Ghế của bạn: 1')).toBeVisible();
@@ -86,6 +87,14 @@ test.describe('Luồng nghiệp vụ trên giao diện', () => {
     await expect(page.getByText('Đã duyệt yêu cầu #78 trên backend.')).toBeVisible();
   });
 
+  test('admin không thể duyệt yêu cầu đã tới giờ bắt đầu', async ({ page }) => {
+    await loginWorkspace(page, 'ADMIN', { initialPendingBooking: true, expiredPendingBooking: true });
+    await page.getByRole('navigation').getByRole('button', { name: 'Yêu cầu đặt phòng' }).click();
+    await page.getByRole('button', { name: 'Kiểm tra' }).last().click();
+    await expect(page.getByText('Đã tới giờ bắt đầu, không thể duyệt yêu cầu này.')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Duyệt yêu cầu' })).toBeDisabled();
+  });
+
   test('admin cập nhật và xóa thiết bị của phòng', async ({ page }) => {
     await loginWorkspace(page, 'ADMIN');
     await page.getByRole('navigation').getByRole('button', { name: 'Phòng & thiết bị' }).click();
@@ -113,14 +122,17 @@ test.describe('Luồng nghiệp vụ trên giao diện', () => {
     await expect(page.getByText('0 chưa đọc · 1 thông báo')).toBeVisible();
   });
 
-  test('admin chuyển báo cáo sự cố sang đã xử lý', async ({ page }) => {
+  test('admin phân công tổ theo khoa và chuyển báo cáo sự cố sang đã xử lý', async ({ page }) => {
     await loginWorkspace(page, 'ADMIN', { initialIncident: true });
     await page.getByRole('navigation').getByRole('button', { name: 'Sự cố' }).click();
     const incident = page.locator('.ws-incident-card').filter({ hasText: 'Máy chiếu không lên hình khi bắt đầu buổi học.' });
+    await page.getByLabel('Lọc theo khoa').selectOption('A');
+    await incident.getByLabel('Người phụ trách').selectOption('TEAM:HARDWARE');
     await incident.getByLabel('Trạng thái').selectOption('RESOLVED');
     await incident.getByRole('button', { name: 'Lưu xử lý' }).click();
     await page.getByRole('alertdialog').getByRole('button', { name: 'Xác nhận' }).click();
     await expect(page.getByText('Đã cập nhật sự cố trên hệ thống.')).toBeVisible();
     await expect(incident).toContainText('Đã xử lý');
+    await expect(incident).toContainText('Tổ phần cứng · Khoa A');
   });
 });

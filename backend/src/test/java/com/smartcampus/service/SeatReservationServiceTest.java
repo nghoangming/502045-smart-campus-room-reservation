@@ -26,6 +26,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doReturn;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -99,6 +103,29 @@ class SeatReservationServiceTest {
     }
 
     @Test
+    void holdsSeatWithoutConfirmingAndReturnsOriginalDeadline() {
+        activeSessionAndSeat();
+        OffsetDateTime deadline = OffsetDateTime.now().plusMinutes(2);
+        when(jdbc.queryForObject("SELECT set_config('app.user_id', ?, true)",
+                String.class, "1")).thenReturn("1");
+        when(jdbc.queryForObject("SELECT set_config('app.role', ?, true)",
+                String.class, "STUDENT")).thenReturn("STUDENT");
+        when(jdbc.queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
+                Long.class, 20L, 30L, 1L)).thenReturn(50L);
+        when(jdbc.queryForObject("SELECT hold_expires_at FROM seat_reservations WHERE seat_reservation_id=?",
+                OffsetDateTime.class, 50L)).thenReturn(deadline);
+
+        TransactionSynchronizationManager.setActualTransactionActive(true);
+        try {
+            assertEquals(deadline, service.hold(request, 1L).expiresAt());
+        } finally {
+            TransactionSynchronizationManager.setActualTransactionActive(false);
+        }
+        verify(jdbc, never()).queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
+                Long.class, 50L, 1L);
+    }
+
+    @Test
     void closedSessionCannotBeBooked() {
         when(classSessions.findById(20L)).thenReturn(Optional.of(session));
         when(session.getEndTime()).thenReturn(OffsetDateTime.now().minusMinutes(1));
@@ -121,6 +148,32 @@ class SeatReservationServiceTest {
         when(bookings.findById(10L)).thenReturn(Optional.of(pastBooking));
 
         assertEquals(List.of(), service.listSeats(20L));
+    }
+
+    @Test
+    void seatMapDistinguishesTemporaryHoldFromConfirmedSeat() {
+        when(classSessions.findById(20L)).thenReturn(Optional.of(session));
+        when(jdbc.queryForObject("SELECT calendar_status FROM class_session_calendar WHERE class_session_id=?",
+                String.class, 20L)).thenReturn("SCHEDULED");
+        when(session.getBookingId()).thenReturn(10L);
+        when(session.getRoomId()).thenReturn(40L);
+        when(session.getId()).thenReturn(20L);
+        when(bookings.findById(10L)).thenReturn(Optional.of(booking));
+        when(booking.getStatus()).thenReturn("CONFIRMED");
+        when(seats.findByRoomIdOrderBySeatNumber(40L)).thenReturn(List.of(seat));
+        when(seat.getId()).thenReturn(30L);
+        doReturn(List.of(), List.of(30L)).when(jdbc).query(
+                eq("SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='RESERVED'"),
+                any(org.springframework.jdbc.core.RowMapper.class), eq(20L));
+        doReturn(List.of(30L), List.of()).when(jdbc).query(
+                eq("SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='PENDING'"),
+                any(org.springframework.jdbc.core.RowMapper.class), eq(20L));
+        doReturn(List.of()).when(jdbc).query(
+                eq("SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='UNAVAILABLE'"),
+                any(org.springframework.jdbc.core.RowMapper.class), eq(20L));
+
+        assertEquals("PENDING", service.listSeats(20L).getFirst().status());
+        assertEquals("RESERVED", service.listSeats(20L).getFirst().status());
     }
 
     @Test

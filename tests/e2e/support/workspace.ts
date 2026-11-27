@@ -1,7 +1,7 @@
 import { expect, Page } from '@playwright/test';
 
 type Role = 'ADMIN' | 'TEACHER' | 'STUDENT';
-type Options = { seatReserved?: boolean; initialIncident?: boolean; initialNotification?: boolean; initialPendingBooking?: boolean };
+type Options = { seatReserved?: boolean; initialIncident?: boolean; initialNotification?: boolean; initialPendingBooking?: boolean; expiredPendingBooking?: boolean };
 
 const start = new Date(Date.now() + 24 * 60 * 60_000).toISOString();
 const end = new Date(new Date(start).getTime() + 60 * 60_000).toISOString();
@@ -16,14 +16,15 @@ export async function mockWorkspace(page: Page, role: Role, options: Options = {
   const accountEmail = role === 'ADMIN' ? 'admin@smartcampus.test' : role === 'TEACHER' ? 'teacher@smartcampus.test' : 'student@smartcampus.test';
   const sessions = [{ id: 501, bookingId: 77, courseCode: 'IT004', title: 'Lập trình ứng dụng Web', roomId: 1, startTime: new Date(Date.now() - 8 * 60_000).toISOString(), endTime: new Date(Date.now() + 52 * 60_000).toISOString(), calendarStatus: 'SCHEDULED', teacherId: 2 }];
   let reservations: any[] = [{ id: 77, userId: 2, roomId: 1, roomCode: 'A101', startTime: sessions[0].startTime, endTime: sessions[0].endTime, status: 'CONFIRMED', createdAt: new Date().toISOString() }];
-  if (options.initialPendingBooking) reservations.push({ id: 78, userId: 2, roomId: 1, roomCode: 'A101', startTime: start, endTime: end, status: 'PENDING', createdAt: new Date().toISOString() });
+  if (options.initialPendingBooking) reservations.push({ id: 78, userId: 2, roomId: 1, roomCode: 'A101', startTime: options.expiredPendingBooking ? new Date(Date.now() - 10 * 60_000).toISOString() : start, endTime: options.expiredPendingBooking ? new Date(Date.now() + 50 * 60_000).toISOString() : end, status: 'PENDING', createdAt: new Date().toISOString() });
   let seats = [
     { id: 901, roomId: 1, seatNumber: 1, status: options.seatReserved ? 'RESERVED' : 'AVAILABLE' },
     { id: 902, roomId: 1, seatNumber: 2, status: 'AVAILABLE' },
   ];
   let seatChoices: any[] = options.seatReserved ? [{ id: 601, classSessionId: 501, sessionId: 501, seatId: 901, userId: accountId, roomId: 1, status: 'CONFIRMED' }] : [];
+  let seatHolds: any[] = [];
   let resources: any[] = [{ id: 31, roomId: 2, name: 'Máy chiếu QA', type: 'EQUIPMENT', quantity: 1, status: 'AVAILABLE' }];
-  let incidents: any[] = options.initialIncident ? [{ id: 41, roomId: 1, roomCode: 'A101', resourceId: null, reportedBy: 2, reporterName: 'Demo Teacher', category: 'PROJECTOR', description: 'Máy chiếu không lên hình khi bắt đầu buổi học.', status: 'OPEN', assignedTo: null, createdAt: new Date().toISOString(), resolvedAt: null }] : [];
+  let incidents: any[] = options.initialIncident ? [{ id: 41, roomId: 1, roomCode: 'A101', facultyCode: 'A', resourceId: null, reportedBy: 2, reporterName: 'Demo Teacher', category: 'PROJECTOR', description: 'Máy chiếu không lên hình khi bắt đầu buổi học.', status: 'OPEN', assignedTo: null, assignedTeam: null, createdAt: new Date().toISOString(), resolvedAt: null }] : [];
   let notifications: any[] = options.initialNotification ? [{ id: 11, title: 'Cập nhật lịch học', message: 'Lịch học mới đã được duyệt.', type: 'BOOKING', bookingId: 77, read: false, createdAt: new Date().toISOString(), targetTab: null }] : [];
   let nextReservationId = 100;
   let nextResourceId = 32;
@@ -52,6 +53,7 @@ export async function mockWorkspace(page: Page, role: Role, options: Options = {
     if (path === '/resources' && method === 'GET') return json(resources);
     if (path === '/notifications' && method === 'GET') return json(notifications);
     if (path === '/seat-reservations/mine' && method === 'GET') return json(seatChoices);
+    if (path === '/seat-reservations/mine/holds' && method === 'GET') return json(seatHolds);
     if (path === '/attendance/mine' && method === 'GET') return json([]);
     if (path === '/attendance/mine/details' && method === 'GET') return json([]);
     if (path === '/absence-requests' && method === 'GET') return json([]);
@@ -72,6 +74,25 @@ export async function mockWorkspace(page: Page, role: Role, options: Options = {
       reservations = reservations.map(item => item.id === Number(studyCancel[1]) ? { ...item, status: 'CANCELLED' } : item);
       return json(reservations.find(item => item.id === Number(studyCancel[1])));
     }
+    if (path === '/seat-reservations/hold' && method === 'POST') {
+      const body = request.postDataJSON();
+      const seat = seats.find(item => item.id === body.seatId);
+      if (!seat || seat.status !== 'AVAILABLE') return json({ message: 'Seat is unavailable' }, 409);
+      seat.status = 'PENDING';
+      const hold = { id: nextReservationId++, classSessionId: body.classSessionId, seatId: seat.id, expiresAt: new Date(Date.now() + 120_000).toISOString() };
+      seatHolds.push(hold);
+      return json(hold, 201);
+    }
+    const seatConfirm = path.match(/^\/seat-reservations\/(\d+)\/confirm$/);
+    if (seatConfirm && method === 'PATCH') {
+      const hold = seatHolds.find(item => item.id === Number(seatConfirm[1]));
+      if (!hold) return json({ message: 'Seat hold not found' }, 404);
+      seatHolds = seatHolds.filter(item => item.id !== hold.id);
+      seats = seats.map(item => item.id === hold.seatId ? { ...item, status: 'RESERVED' } : item);
+      const choice = { ...hold, sessionId: hold.classSessionId, userId: accountId, roomId: 1, status: 'CONFIRMED' };
+      seatChoices.push(choice);
+      return json(choice);
+    }
     if (path === '/seat-reservations' && method === 'POST') {
       const body = request.postDataJSON();
       const seat = seats.find(item => item.id === body.seatId);
@@ -83,8 +104,12 @@ export async function mockWorkspace(page: Page, role: Role, options: Options = {
     }
     const seatCancel = path.match(/^\/seat-reservations\/(\d+)\/cancel$/);
     if (seatCancel && method === 'PATCH') {
-      seatChoices = seatChoices.filter(item => item.id !== Number(seatCancel[1]));
-      seats = seats.map(item => item.id === (seatChoices[0]?.seatId ?? 901) ? { ...item, status: 'AVAILABLE' } : item);
+      const id = Number(seatCancel[1]);
+      const reservation = [...seatChoices, ...seatHolds].find(item => item.id === id);
+      if (!reservation) return json({ message: 'Seat reservation not found' }, 404);
+      seatChoices = seatChoices.filter(item => item.id !== id);
+      seatHolds = seatHolds.filter(item => item.id !== id);
+      seats = seats.map(item => item.id === reservation.seatId ? { ...item, status: 'AVAILABLE' } : item);
       return json({ id: Number(seatCancel[1]), status: 'CANCELLED' });
     }
     if (path === '/attendance/check-in' && method === 'POST') {
@@ -109,7 +134,7 @@ export async function mockWorkspace(page: Page, role: Role, options: Options = {
     }
     if (path === '/incidents' && method === 'POST') {
       const body = request.postDataJSON();
-      const item = { id: nextIncidentId++, roomId: body.roomId, roomCode: body.roomId === 1 ? 'A101' : 'B201', resourceId: body.resourceId, reportedBy: accountId, reporterName: 'Demo Teacher', category: body.category, description: body.description, status: 'OPEN', assignedTo: null, createdAt: new Date().toISOString(), resolvedAt: null };
+      const item = { id: nextIncidentId++, roomId: body.roomId, roomCode: body.roomId === 1 ? 'A101' : 'B201', facultyCode: 'A', resourceId: body.resourceId, reportedBy: accountId, reporterName: 'Demo Teacher', category: body.category, description: body.description, status: 'OPEN', assignedTo: null, assignedTeam: null, createdAt: new Date().toISOString(), resolvedAt: null };
       incidents.unshift(item);
       return json(item, 201);
     }

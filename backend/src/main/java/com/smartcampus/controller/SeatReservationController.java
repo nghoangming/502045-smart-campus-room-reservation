@@ -2,6 +2,7 @@ package com.smartcampus.controller;
 
 import com.smartcampus.auth.AccessService;
 import com.smartcampus.dto.SeatReservationRequest;
+import com.smartcampus.dto.SeatHoldResponse;
 import com.smartcampus.dto.SeatReservationResponse;
 import com.smartcampus.dto.SeatResponse;
 import com.smartcampus.service.SeatReservationService;
@@ -42,9 +43,29 @@ public class SeatReservationController {
         return service.create(request, userId);
     }
 
+    @PostMapping("/seat-reservations/hold")
+    @ResponseStatus(HttpStatus.CREATED)
+    public SeatHoldResponse hold(@Valid @RequestBody SeatReservationRequest request,
+                                 @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "STUDENT");
+        return service.hold(request, userId);
+    }
+
+    @PatchMapping("/seat-reservations/{id}/confirm")
+    public SeatReservationResponse confirm(@PathVariable Long id,
+                                           @RequestAttribute("authenticatedUserId") Long userId) {
+        access.requireRole(userId, "STUDENT");
+        return service.confirm(id, userId);
+    }
+
     @GetMapping("/seat-reservations/mine")
     public List<SeatReservationResponse> mine(@RequestAttribute("authenticatedUserId") Long userId) {
         return service.forUser(userId);
+    }
+
+    @GetMapping("/seat-reservations/mine/holds")
+    public List<SeatHoldResponse> myHolds(@RequestAttribute("authenticatedUserId") Long userId) {
+        return service.holdsForUser(userId);
     }
 
     @GetMapping("/seat-reservations/{id}")

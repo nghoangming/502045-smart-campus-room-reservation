@@ -1,6 +1,7 @@
 package com.smartcampus.service;
 
 import com.smartcampus.dto.SeatReservationRequest;
+import com.smartcampus.dto.SeatHoldResponse;
 import com.smartcampus.dto.SeatReservationResponse;
 import com.smartcampus.dto.SeatResponse;
 import com.smartcampus.auth.DbSessionIdentity;
@@ -53,7 +54,10 @@ public class SeatReservationService {
             throw new IllegalArgumentException("Class session booking is not active");
         }
         Set<Long> reservedIds = new HashSet<>(jdbc.query(
-                "SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status IN ('RESERVED','PENDING')",
+                "SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='RESERVED'",
+                (rs, row) -> rs.getLong(1), session.getId()));
+        Set<Long> pendingIds = new HashSet<>(jdbc.query(
+                "SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='PENDING'",
                 (rs, row) -> rs.getLong(1), session.getId()));
         Set<Long> unavailableIds = new HashSet<>(jdbc.query(
                 "SELECT seat_id FROM class_seat_availability WHERE class_session_id=? AND reservation_status='UNAVAILABLE'",
@@ -61,12 +65,43 @@ public class SeatReservationService {
         return seatRepository.findByRoomIdOrderBySeatNumber(session.getRoomId()).stream()
                 .map(seat -> new SeatResponse(seat.getId(), seat.getRoomId(),
                         seat.getSeatNumber(), unavailableIds.contains(seat.getId()) ? "UNAVAILABLE"
-                                : reservedIds.contains(seat.getId()) ? "RESERVED" : seat.getStatus()))
+                                : reservedIds.contains(seat.getId()) ? "RESERVED"
+                                : pendingIds.contains(seat.getId()) ? "PENDING" : seat.getStatus()))
                 .toList();
     }
 
     @Transactional
     public SeatReservationResponse create(SeatReservationRequest request, Long userId) {
+        Long holdId = acquireHold(request, userId);
+        return confirm(holdId, userId);
+    }
+
+    @Transactional
+    public SeatHoldResponse hold(SeatReservationRequest request, Long userId) {
+        Long holdId = acquireHold(request, userId);
+        OffsetDateTime expiresAt = jdbc.queryForObject(
+                "SELECT hold_expires_at FROM seat_reservations WHERE seat_reservation_id=?",
+                OffsetDateTime.class, holdId);
+        return new SeatHoldResponse(holdId, request.classSessionId(), request.seatId(), expiresAt);
+    }
+
+    @Transactional
+    public SeatReservationResponse confirm(Long id, Long userId) {
+        try {
+            DbSessionIdentity.set(jdbc, userId, "STUDENT");
+            Long confirmedId = jdbc.queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
+                    Long.class, id, userId);
+            return toResponse(seatReservationRepository.findById(confirmedId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Seat reservation not found: " + confirmedId)));
+        } catch (DataIntegrityViolationException ex) {
+            if (DatabaseConflict.hasSqlState(ex, "23514")) {
+                throw new SeatConflictException("Lượt giữ ghế đã hết hạn hoặc không còn hợp lệ.");
+            }
+            throw ex;
+        }
+    }
+
+    private Long acquireHold(SeatReservationRequest request, Long userId) {
         ClassSession session = findSession(request.classSessionId());
         requireOngoingSession(session);
         requireHeldSession(session);
@@ -95,12 +130,8 @@ public class SeatReservationService {
 
         try {
             DbSessionIdentity.set(jdbc, userId, "STUDENT");
-            Long holdId = jdbc.queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
+            return jdbc.queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
                     Long.class, session.getId(), seat.getId(), userId);
-            Long confirmedId = jdbc.queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
-                    Long.class, holdId, userId);
-            return toResponse(seatReservationRepository.findById(confirmedId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Seat reservation not found: " + confirmedId)));
         } catch (DataIntegrityViolationException ex) {
             if (DatabaseConflict.isConstraint(ex, "23505", "uq_seat_reservations_active_seat")) {
                 throw new SeatConflictException("Seat is already reserved for this class session");
@@ -125,6 +156,15 @@ public class SeatReservationService {
     public List<SeatReservationResponse> forUser(Long userId) {
         return seatReservationRepository.findByUserIdAndStatus(userId, "CONFIRMED").stream()
                 .map(this::toResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SeatHoldResponse> holdsForUser(Long userId) {
+        return jdbc.query("SELECT seat_reservation_id,class_session_id,seat_id,hold_expires_at "
+                        + "FROM seat_reservations WHERE user_id=? AND status='PENDING' "
+                        + "AND hold_expires_at>clock_timestamp()",
+                (rs, row) -> new SeatHoldResponse(rs.getLong(1), rs.getLong(2), rs.getLong(3),
+                        rs.getObject(4, OffsetDateTime.class)), userId);
     }
 
     @Transactional

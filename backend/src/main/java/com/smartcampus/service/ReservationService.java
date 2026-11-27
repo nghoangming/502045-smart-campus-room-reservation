@@ -181,6 +181,9 @@ public class ReservationService {
         if (!"PENDING".equals(booking.getStatus())) {
             throw new IllegalArgumentException("Only pending reservations can be reviewed");
         }
+        if (approve && !booking.getStartTime().isAfter(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("Cannot approve a reservation after its start time");
+        }
         return jdbc.queryForObject("SELECT booking_id,user_id,room_id,start_time,end_time,status,created_at FROM review_booking(?,?,?,?)",
                 (rs, row) -> responseFromRow(rs), id, adminId, approve, null);
     }
