@@ -7,7 +7,6 @@ on:
 
 jobs:
   frontend:
-    if: ${{ hashFiles('frontend/package.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -25,7 +24,6 @@ jobs:
       - run: npm test --if-present
 
   backend:
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -53,7 +51,6 @@ jobs:
 
   # Test API: bật backend thật rồi chạy Playwright project "api"
   api-tests:
-    if: ${{ hashFiles('backend/pom.xml') != '' }}
     runs-on: ubuntu-latest
     # Connect to an already provisioned test database; CI does not create or migrate it.
     env:
@@ -83,7 +80,7 @@ jobs:
           cache-dependency-path: tests/package-lock.json
       - name: Validate configured test environment
         run: |
-          for name in DB_URL DB_USER DB_PASSWORD JWT_SECRET; do
+          for name in DB_URL DB_USER DB_PASSWORD JWT_SECRET TEST_ADMIN_EMAIL TEST_ADMIN_PASSWORD TEST_TEACHER_EMAIL TEST_TEACHER_PASSWORD TEST_STUDENT_EMAIL TEST_STUDENT_PASSWORD TEST_STUDENT2_EMAIL TEST_STUDENT2_PASSWORD; do
             if [ -z "${!name}" ]; then echo "Missing required CI secret for $name"; exit 1; fi
           done
       - name: Build và chạy backend
@@ -123,6 +120,18 @@ jobs:
         run: |
           npm ci
           npx playwright test --project=api
+      - name: Cài frontend và Chromium cho E2E với backend thật
+        run: |
+          npm --prefix frontend ci
+          cd tests
+          npx playwright install --with-deps chromium
+      - name: Chạy E2E với backend thật
+        working-directory: tests
+        env:
+          BACKEND_URL: http://localhost:8080
+          TEST_STUDENT_EMAIL: ${{ secrets.CI_TEST_STUDENT_EMAIL }}
+          TEST_STUDENT_PASSWORD: ${{ secrets.CI_TEST_STUDENT_PASSWORD }}
+        run: npx playwright test --project=e2e-live
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -133,7 +142,6 @@ jobs:
 
   # Test E2E: Playwright tự bật frontend (webServer trong playwright.config.ts)
   e2e-tests:
-    if: ${{ hashFiles('frontend/package.json') != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

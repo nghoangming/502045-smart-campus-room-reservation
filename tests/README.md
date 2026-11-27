@@ -24,6 +24,7 @@ npx playwright install chromium
 npm test
 npm run test:api
 npm run test:e2e
+npx playwright test --project=e2e-live
 npm run report
 ```
 
@@ -37,6 +38,8 @@ npm run test:api
 Script cần `psql`, test DB và tài khoản demo/room types đã có. Script chỉ thêm dữ liệu nghiệp vụ, bao gồm tài khoản phụ `teacher2@smartcampus.test`, booking/session/seat/challenge kiểm thử; không thay schema. Nó ghi fixture ID/code vào `.env`. Chạy suite ngay sau provisioning: mã QR hợp lệ hết hạn sau 2 phút, còn session workflow chỉ dùng được từ phút 5 đến trước phút 20. Không chạy trên production DB.
 
 `test:e2e` tự chạy frontend qua `webServer`; có thể đặt `SKIP_WEB_SERVER=true` nếu frontend đã chạy. Các browser workflow dùng API responses được mock để kiểm tra hành vi UI; integration với backend thật được kiểm tra riêng trong project `api`.
+
+`e2e-live` chạy Chromium với frontend và backend thật. Cần tài khoản test student, teacher và admin, `BASE_URL` trỏ frontend và frontend proxy `/api/v1` tới backend đang chạy. Bốn ca kiểm tra đăng nhập/xem phòng-lịch, đặt/hủy phòng, báo cáo/xử lý sự cố và CRUD tài nguyên; test chọn phòng theo dữ liệu hiện có thay vì hard-code ID. CI API job chạy project này sau API suite với `BACKEND_URL=http://localhost:8080`.
 
 ## Biến môi trường API
 
