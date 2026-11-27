@@ -2,7 +2,7 @@ openapi: "3.1.0"
 info:
   title: "Smart Campus API"
   version: "2.1.0"
-  description: "Contract for the Spring Boot backend and migrations 001-024. x-implementation-status distinguishes implemented operations from retained future ideas. Except public operations, requests require Bearer JWT. Student timetable is scoped by faculty, not individual course enrollment."
+  description: "Contract for the Spring Boot backend and migrations 001-026. x-implementation-status distinguishes implemented operations from retained future ideas. Except public operations, requests require Bearer JWT. Student timetable is scoped by faculty, not individual course enrollment."
 servers:
   - url: "http://localhost:8080/api/v1"
 security:
@@ -1831,6 +1831,7 @@ paths:
         - "Seats"
       summary: "List physical and reservation seat status"
       x-implementation-status: "implemented"
+      description: "Read-only seat status remains available after a class session ends so teachers can review the historical class layout. Students can book or cancel seats only before the end time."
       parameters:
         - name: "sessionId"
           in: "path"
@@ -1877,7 +1878,7 @@ paths:
         - "Seats"
       summary: "Confirm seat in approved faculty session"
       x-implementation-status: "implemented"
-      description: "Student only; one seat per session, overlapping sessions conflict."
+      description: "Student only, before the class session ends; one seat per session, overlapping sessions conflict."
       requestBody:
         required: true
         content:
@@ -1925,7 +1926,7 @@ paths:
     get:
       tags:
         - "Seats"
-      summary: "List own confirmed seats"
+      summary: "List own confirmed seats, including past sessions"
       x-implementation-status: "implemented"
       responses:
         "200":
@@ -2004,6 +2005,7 @@ paths:
         - "Seats"
       summary: "Cancel own seat reservation"
       x-implementation-status: "implemented"
+      description: "Student can cancel only before the class session ends; completed sessions remain unchanged."
       parameters:
         - name: "id"
           in: "path"

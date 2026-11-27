@@ -422,7 +422,7 @@ Smart Campus sử dụng PostgreSQL để lưu trữ dữ liệu.
 
 **Bước 2:** Tạo database theo tên được khai báo trong cấu hình Backend.
 
-**Bước 3:** Chạy các file `database/migrations/001` đến `024` theo thứ tự tên trên database trống. Với database đã có schema, chỉ chạy các migration tiếp theo chưa áp dụng. BE hiện tại đọc `users.auth_version` từ migration `024`, nên cần áp dụng file này trước khi khởi động BE mới. Xem [hướng dẫn database](database/README.md).
+**Bước 3:** Chạy các file `database/migrations/001` đến `026` theo thứ tự tên trên database trống. Với database đã có schema, chỉ chạy các migration tiếp theo chưa áp dụng. BE hiện tại đọc `users.auth_version` từ migration `024` và dùng quy tắc khóa ghế sau giờ học từ migration `026`; cần áp dụng các file này trước khi khởi động BE mới. Xem [hướng dẫn database](database/README.md).
 
 **Bước 4:** Nếu cần dữ liệu demo, kiểm tra seed trong migration `004`; không chạy lại trên database đã có dữ liệu.
 

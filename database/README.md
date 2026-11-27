@@ -1,12 +1,13 @@
 # Database đồng bộ
 
-Đây là bộ migration tuần tự cho PostgreSQL. Với database trống, chạy `migrations/001` đến `migrations/024` theo tên file. Với database đã có migration trước đó, chỉ chạy các file tiếp theo theo thứ tự; không chạy lại migration đã áp dụng. `004` chứa tài khoản, phòng, thiết bị và booking mẫu có ngày cố định 16/10/2026. Migration `024` bổ sung xác thực email cá nhân và khôi phục mật khẩu; BE hiện tại cần `024` vì JWT đọc `users.auth_version`.
+Đây là bộ migration tuần tự cho PostgreSQL. Với database trống, chạy `migrations/001` đến `migrations/026` theo tên file. Với database đã có migration trước đó, chỉ chạy các file tiếp theo theo thứ tự; không chạy lại migration đã áp dụng. `004` chứa tài khoản, phòng, thiết bị và booking mẫu có ngày cố định 16/10/2026. Migration `024` bổ sung xác thực email cá nhân và khôi phục mật khẩu; BE hiện tại cần `024` vì JWT đọc `users.auth_version`.
 
 ## Chức năng và quy tắc dữ liệu
 
 - Phòng: trigger lấy tiền tố mã phòng, `A → LAB` (thực hành), `B → THEORY` (lý thuyết), `C → SELF_STUDY` (tự học). Giá trị cuối lưu ở `rooms.type`. Trigger booking chỉ cho giảng viên đặt LAB/THEORY và sinh viên đặt SELF_STUDY.
 - Booking: giữ exclusion constraint chống trùng phòng/giờ, kể cả hai giao dịch đồng thời. Buổi học phải khớp phòng/giờ với booking.
 - Ghế: giữ 2 phút (`PENDING`), xác nhận (`CONFIRMED`), hủy (`CANCELLED`); một người một ghế trong **mỗi buổi học**. Các hàm `hold_class_seat`, `confirm_class_seat`, `cancel_class_seat` và view `class_seat_availability` thuộc bộ nền.
+- Sau khi buổi học kết thúc, `026` khóa giữ, xác nhận và hủy ghế của sinh viên. Lịch sử ghế và sơ đồ phục vụ quản lý điểm danh vẫn có thể đọc; luồng Admin duyệt báo vắng vẫn có thể hủy ghế theo nghiệp vụ.
 - Tài khoản: `users` có hồ sơ, khoa, xác thực tài khoản và trạng thái xác thực email cá nhân; `user_invites` giữ token kích hoạt. `faculties` ánh xạ 16 khoa theo mã A–P. `student_intake` giữ hồ sơ nhập từ CSV Google Form, `student_code_sequence` cấp mã theo khoa/năm. Mã được sinh ở lớp nghiệp vụ khi xử lý hồ sơ, không tự sinh khi chỉ INSERT hồ sơ.
 - Báo vắng giảng viên: chỉ gửi cho buổi đã duyệt, chậm nhất 60 phút trước giờ bắt đầu. Admin có thể duyệt yêu cầu gửi đúng hạn sau mốc này. Khi còn chờ duyệt, lịch sinh viên vẫn hiển thị bình thường; khi duyệt, `review_teacher_absence` giải phóng phòng/ghế và trigger tạo thông báo cho giảng viên cùng sinh viên đã xác nhận ghế trong một transaction.
 - Báo vắng sinh viên: phải có ghế `CONFIRMED` trong buổi đó và gửi chậm nhất 15 phút trước giờ bắt đầu. Giảng viên dạy buổi đó dùng `review_student_absence` để duyệt hoặc từ chối; duyệt sẽ ghi `EXCUSED` vào điểm danh. `class_session_calendar` suy trạng thái buổi học từ yêu cầu giảng viên đã duyệt; đơn đang chờ không làm đổi lịch sinh viên.
@@ -71,3 +72,7 @@ Người dùng đã xác nhận chạy `024` trên DB đang sử dụng ngày 25
 ## 025: Ràng buộc trạng thái phòng
 
 Chạy `migrations/025_room_status_constraint.sql` một lần sau 024. Phòng chỉ nhận `ACTIVE` hoặc `MAINTENANCE`, khớp với BE và FE hiện tại. Migration dừng và rollback nếu có phòng mang trạng thái khác; kiểm tra, sửa dữ liệu đó trước khi chạy lại. BE trả lỗi 409 có thể thử lại khi PostgreSQL hủy một giao dịch đồng thời với SQLSTATE `40P01` hoặc `40001`.
+
+## 026: Khóa ghế sau khi buổi học kết thúc
+
+Chạy `migrations/026_lock_seats_after_class_end.sql` một lần sau 025 trên database đang dùng. Migration thay các hàm giữ, xác nhận, hủy ghế và trigger bảo vệ ghi trực tiếp; dùng `class_sessions.end_time` làm mốc đóng. Không xóa lịch sử ghế hay điểm danh. Sinh viên không thể đặt lại hoặc hủy ghế sau mốc này; việc Admin hủy ghế khi duyệt báo vắng và dọn các hold hết hạn vẫn hoạt động.

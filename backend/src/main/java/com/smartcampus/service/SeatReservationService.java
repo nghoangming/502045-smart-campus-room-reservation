@@ -3,6 +3,7 @@ package com.smartcampus.service;
 import com.smartcampus.dto.SeatReservationRequest;
 import com.smartcampus.dto.SeatReservationResponse;
 import com.smartcampus.dto.SeatResponse;
+import com.smartcampus.auth.DbSessionIdentity;
 import com.smartcampus.entity.Booking;
 import com.smartcampus.entity.ClassSession;
 import com.smartcampus.entity.Seat;
@@ -16,6 +17,7 @@ import com.smartcampus.repository.SeatReservationRepository;
 import java.util.List;
 import java.util.Set;
 import java.util.HashSet;
+import java.time.OffsetDateTime;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -66,11 +68,12 @@ public class SeatReservationService {
     @Transactional
     public SeatReservationResponse create(SeatReservationRequest request, Long userId) {
         ClassSession session = findSession(request.classSessionId());
+        requireOngoingSession(session);
         requireHeldSession(session);
         Booking booking = bookingRepository.findById(session.getBookingId())
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found: " + session.getBookingId()));
-        if (!"CONFIRMED".equals(booking.getStatus()) || !booking.getEndTime().isAfter(java.time.OffsetDateTime.now())) {
-            throw new IllegalArgumentException("Buổi học chưa được duyệt hoặc đã kết thúc, không thể đặt ghế.");
+        if (!"CONFIRMED".equals(booking.getStatus())) {
+            throw new IllegalArgumentException("Buổi học chưa được duyệt, không thể đặt ghế.");
         }
 
         Seat seat = seatRepository.findById(request.seatId())
@@ -91,6 +94,7 @@ public class SeatReservationService {
         }
 
         try {
+            DbSessionIdentity.set(jdbc, userId, "STUDENT");
             Long holdId = jdbc.queryForObject("SELECT seat_reservation_id FROM hold_class_seat(?,?,?)",
                     Long.class, session.getId(), seat.getId(), userId);
             Long confirmedId = jdbc.queryForObject("SELECT seat_reservation_id FROM confirm_class_seat(?,?)",
@@ -136,6 +140,8 @@ public class SeatReservationService {
         if ("CANCELLED".equals(reservation.getStatus())) {
             throw new IllegalArgumentException("Seat reservation is already cancelled: " + id);
         }
+        requireOngoingSession(findSession(reservation.getClassSessionId()));
+        DbSessionIdentity.set(jdbc, userId, "STUDENT");
         jdbc.queryForObject("SELECT seat_reservation_id FROM cancel_class_seat(?,?)", Long.class, id, userId);
         return new SeatReservationResponse(reservation.getId(), reservation.getClassSessionId(),
                 reservation.getSeatId(), reservation.getUserId(), reservation.getRoomId(),
@@ -145,6 +151,12 @@ public class SeatReservationService {
     private ClassSession findSession(Long id) {
         return classSessionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Class session not found: " + id));
+    }
+
+    private void requireOngoingSession(ClassSession session) {
+        if (!session.getEndTime().isAfter(OffsetDateTime.now())) {
+            throw new IllegalArgumentException("Buổi học đã kết thúc, không thể đặt hoặc hủy chỗ ngồi.");
+        }
     }
 
     private void requireHeldSession(ClassSession session) {
