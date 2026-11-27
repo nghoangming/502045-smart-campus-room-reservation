@@ -5905,6 +5905,15 @@
   border-color: #84afbd
 }
 
+.ws-calendar-class:disabled {
+  cursor: default;
+  pointer-events: none;
+}
+
+.ws-calendar-class:disabled > svg {
+  display: none;
+}
+
 .ws-calendar-class>svg {
   margin-left: auto;
   color: #bd2747;
