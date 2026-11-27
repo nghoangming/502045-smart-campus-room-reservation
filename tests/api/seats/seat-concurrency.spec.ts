@@ -17,6 +17,11 @@ test.describe('Seat reservation concurrency', () => {
     const first = await postJson<{ id: number; expiresAt: string }>(request, '/seat-reservations/hold', { classSessionId: sessionId, seatId }, studentA);
     expect(first.res.status()).toBe(201);
     expect(new Date(first.body.expiresAt).getTime()).toBeGreaterThan(Date.now());
+    const activeHolds = await getJson<Array<{ id: number; classSessionId: number; seatId: number }>>(
+      request, '/seat-reservations/mine/holds', studentA,
+    );
+    expect(activeHolds.res.status()).toBe(200);
+    expect(activeHolds.body).toContainEqual(expect.objectContaining({ id: first.body.id, classSessionId: sessionId, seatId }));
     const pendingMap = await getJson<Array<{ id: number; status: string }>>(request, `/class-sessions/${sessionId}/seats`, studentB);
     expect(pendingMap.body.find((seat) => seat.id === seatId)?.status).toBe('PENDING');
     const second = await postJson(request, '/seat-reservations/hold', { classSessionId: sessionId, seatId }, studentB);
@@ -25,6 +30,8 @@ test.describe('Seat reservation concurrency', () => {
     const confirmed = await request.patch(`/api/v1/seat-reservations/${first.body.id}/confirm`, { headers: studentA });
     expect(confirmed.status()).toBe(200);
     expect((await confirmed.json()).status).toBe('CONFIRMED');
+    const holdsAfterConfirmation = await getJson<Array<{ id: number }>>(request, '/seat-reservations/mine/holds', studentA);
+    expect(holdsAfterConfirmation.body.some((hold) => hold.id === first.body.id)).toBe(false);
     const confirmedMap = await getJson<Array<{ id: number; status: string }>>(request, `/class-sessions/${sessionId}/seats`, studentB);
     expect(confirmedMap.body.find((seat) => seat.id === seatId)?.status).toBe('RESERVED');
     const secondAfterConfirmation = await postJson(request, '/seat-reservations/hold', { classSessionId: sessionId, seatId }, studentB);

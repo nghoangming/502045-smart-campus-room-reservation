@@ -1,6 +1,6 @@
 # Tests (Playwright)
 
-Bộ API/E2E test cho Smart Campus. Test không tạo hoặc sửa schema/database; API tests dùng database đã được cấu hình và chỉ tạo dữ liệu nghiệp vụ cần cho các flow kiểm thử.
+Bộ API/E2E test cho Smart Campus. Khi chạy tại máy, API tests dùng database đã được cấu hình và chỉ tạo dữ liệu nghiệp vụ cần cho các flow kiểm thử. GitHub Actions dùng PostgreSQL tạm riêng và tạo schema từ các migration trong repository.
 
 ## Yêu cầu
 
@@ -61,4 +61,4 @@ Script cần `psql`, test DB và tài khoản demo/room types đã có. Script c
 
 Các flow ghi dữ liệu (reservation, incident, resource) nên chạy trên database kiểm thử riêng hoặc dữ liệu đã dành cho test; các endpoint hiện có không hỗ trợ xóa lịch sử incident.
 
-CI API job đọc kết nối từ secrets CI_DB_URL, CI_DB_USER, CI_DB_PASSWORD, CI_JWT_SECRET và không tạo schema/chạy migrations. Fixture SQL chỉ thêm dữ liệu trên test DB; principal CI cần quyền cho fixture setup. JaCoCo HTML/XML report được tạo tại `backend/target/site/jacoco` bằng `mvn verify`.
+CI API job dùng PostgreSQL service tạm, áp dụng `database/migrations/*.sql` theo thứ tự rồi nạp dữ liệu demo và `fixtures/ci-base.sql` trước khi chạy backend/Playwright. Không cần đưa DB cục bộ hoặc `tests/.env` lên GitHub. Backend JUnit context test dùng H2 trong bộ nhớ. JaCoCo HTML/XML report được tạo tại `backend/target/site/jacoco` bằng `mvn verify`.

@@ -14,7 +14,7 @@ Mã case dùng để truy vết; file spec chứa bước thực hiện và asse
 | ID | Điều kiện / thao tác | Kết quả mong đợi | Tự động hóa | Kết quả |
 |---|---|---|---|---|
 | SETUP-01 | Đăng nhập admin, đọc danh sách phòng trước API suite | Có tài khoản và loại phòng bắt buộc | `tests/setup/api.setup.spec.ts` | PASS |
-| UNIT-01 | Chạy `mvn verify` với DB test đã migrate | 90 JUnit pass; JaCoCo line ≥60% | `backend/src/test/java`, `backend/pom.xml` | PASS — 61,74% |
+| UNIT-01 | Chạy JUnit và JaCoCo; Spring context dùng H2 trong bộ nhớ | 93 JUnit pass; JaCoCo line ≥60% | `backend/src/test/java`, `backend/pom.xml` | PASS — 62,15% |
 | UNIT-02 | Import CSV Google Form hợp lệ, bắt email activation và dùng token; bắt email reset và đổi mật khẩu | Dữ liệu CSV được nhận; token dùng một lần; password đổi và tăng auth version | `StudentIntakeCsvServiceTest.java`, `UserInvitationServiceTest.java`, `AccountRecoveryServiceTest.java` | PASS — mail sender giả |
 
 ## 2. API contract và workflow
@@ -40,6 +40,7 @@ Mã case dùng để truy vết; file spec chứa bước thực hiện và asse
 | BOOK-05 | Teacher tạo booking kèm session, admin duyệt booking; tạo booking khác để từ chối | Session được tạo cùng yêu cầu; booking đổi sang CONFIRMED/REJECTED đúng | `class-sessions/booking-approval.spec.ts` | PASS |
 | RACE-01 | Hai sinh viên cùng đặt phòng/cùng giờ | Chính xác một request thành công | `reservations/reservations.spec.ts` | PASS |
 | RACE-02 | Hai sinh viên cùng giữ một ghế/session | Chính xác một request thành công | `seats/seat-concurrency.spec.ts` | PASS |
+| RACE-03 | Sinh viên A giữ ghế; xem danh sách hold; B không thể giữ; A xác nhận | Ghế chuyển PENDING → RESERVED, hold biến mất; B nhận 409 | `seats/seat-concurrency.spec.ts` | PASS |
 | SEAT-01 | Xem sơ đồ, giữ ghế, xem ghế của mình, hủy | Vòng đời ghế đúng | `seats/seat-lifecycle.spec.ts` | PASS |
 | SEAT-02 | Đặt hoặc hủy ghế sau khi session kết thúc | Bị từ chối | `seats/session-end-lock.spec.ts` | PASS |
 | QR-01 | Điểm danh mã hợp lệ; teacher cấp mã và xem danh sách | Check-in thành công, danh sách cập nhật | `attendance/qr-attendance.spec.ts`, `qr-workflow.spec.ts` | PASS |
@@ -51,13 +52,14 @@ Mã case dùng để truy vết; file spec chứa bước thực hiện và asse
 | RES-02 | Trạng thái tài nguyên sai hoặc thiếu xác thực | Bị từ chối | `resources/resources.spec.ts` | PASS |
 | INCIDENT-01 | Teacher báo sự cố, admin xử lý | Sự cố đổi trạng thái, notification phát sinh | `incidents/incidents.spec.ts` | PASS |
 | INCIDENT-02 | Loại sự cố sai hoặc thiếu xác thực | Bị từ chối | `incidents/incidents.spec.ts` | PASS |
+| INCIDENT-03 | Admin phân công cho người, tổ phần cứng hoặc tổ phần mềm | Phân công đúng; từ chối người không tồn tại | `incidents/incidents.spec.ts` | PASS |
 | NOTIF-01 | Liệt kê, đánh dấu tất cả đã đọc lặp lại | Kết quả idempotent | `notifications/notifications.spec.ts` | PASS |
 | NOTIF-02 | Đọc notification khi chưa đăng nhập | Bị từ chối | `notifications/notifications.spec.ts` | PASS |
 | ACCOUNT-01 | Import CSV thiếu cột bắt buộc | Bị từ chối | `accounts/intake-and-recovery.spec.ts` | PASS |
 | ACCOUNT-02 | Token kích hoạt sai; quên mật khẩu cho email lạ | Token bị từ chối; recovery không tiết lộ tài khoản | `accounts/intake-and-recovery.spec.ts` | PASS |
 | HEALTH-01 | Gọi health endpoint | HTTP 200 | `health/health.spec.ts` | PASS |
 
-Các dòng nhóm nhiều assertion hoặc biến thể trong cùng spec; tổng Playwright API gần nhất là **51 passed, 0 skipped, 0 failed**, gồm SETUP-01.
+Các dòng nhóm nhiều assertion hoặc biến thể trong cùng spec; tổng Playwright API gần nhất là **53 passed, 0 skipped, 0 failed**, gồm SETUP-01, trên PostgreSQL tạm với migrations 001–028.
 
 ## 3. Browser UI
 
@@ -78,8 +80,10 @@ Các dòng nhóm nhiều assertion hoặc biến thể trong cùng spec; tổng 
 | UI-11 | Chạy browser sanity | Chromium/Playwright render được nội dung | `sanity.spec.ts` | PASS |
 | UI-12 | Camera bị từ chối quyền | Hiện hướng dẫn cấp quyền và đóng dialog được | `workflows.spec.ts` | PASS |
 | UI-13 | Phát ảnh QR qua video stream mô phỏng | Quét và tự điền đúng mã do giao diện teacher tạo | `workflows.spec.ts` | PASS |
+| UI-14 | Admin xem booking đã tới giờ bắt đầu | Nút duyệt bị khóa và lý do hiển thị | `workflows.spec.ts` | PASS |
+| UI-15 | Admin lọc khoa, phân công tổ phần cứng và xử lý sự cố | Giao diện hiển thị tổ được giao và trạng thái mới | `workflows.spec.ts` | PASS |
 
-Các dòng gộp thao tác cùng workflow; tổng browser suite mock API gần nhất là **22 passed, 0 failed**.
+Các dòng gộp thao tác cùng workflow; tổng browser suite mock API gần nhất là **23 passed, 0 failed**.
 
 ## 4. Browser với backend thật
 
@@ -98,7 +102,7 @@ Các dòng gộp thao tác cùng workflow; tổng browser suite mock API gần n
 | GAP-02 | SMTP thật → nhận email reset | Mailbox test/mail catcher đọc token | PENDING |
 | GAP-03 | Browser kết nối backend thật qua ghế và QR | Fixture session/ghế/mã QR tươi và frontend/backend cùng môi trường | PENDING |
 | GAP-04 | Camera vật lý quét QR trên thiết bị thật | Thiết bị có camera và quyền truy cập | PENDING |
-| GAP-05 | Full CI, artifact và evidence Git/PR | CI secrets, DB test truy cập được từ runner, CI run thực tế | PENDING |
+| GAP-05 | Full CI, artifact và evidence Git/PR | Push bản sửa lên PR và chạy lại workflow với PostgreSQL service tạm | PENDING |
 
 ## 6. Quy tắc ghi evidence
 
