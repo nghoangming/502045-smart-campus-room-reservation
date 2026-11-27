@@ -42,6 +42,12 @@ export default defineConfig({
         baseURL: BASE_URL,
       },
     },
+    {
+      name: 'e2e-live',
+      testDir: './e2e-live',
+      workers: 1,
+      use: { ...devices['Desktop Chrome'], baseURL: BASE_URL },
+    },
   ],
   // Tự bật frontend (Next.js) khi chạy E2E. Đặt SKIP_WEB_SERVER=true nếu bạn tự chạy `npm run dev`
   // hoặc chỉ chạy API test (không cần frontend).

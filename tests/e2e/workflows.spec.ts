@@ -46,6 +46,48 @@ test.describe('Luồng nghiệp vụ trên giao diện', () => {
     await expect(page.getByText(/Đã điểm danh thành công lúc/)).toBeVisible();
   });
 
+  test('camera bị chặn hiển thị hướng dẫn quyền truy cập', async ({ page }) => {
+    await page.addInitScript(() => {
+      navigator.mediaDevices.getUserMedia = async () => {
+        throw new DOMException('Permission denied', 'NotAllowedError');
+      };
+    });
+    await loginWorkspace(page, 'STUDENT', { seatReserved: true });
+    await page.getByRole('navigation').getByRole('button', { name: 'Check-in QR' }).click();
+    await page.getByRole('button', { name: 'Mở camera quét QR' }).click();
+    await expect(page.getByRole('dialog', { name: 'Quét mã QR' })).toBeVisible();
+    await expect(page.getByRole('dialog', { name: 'Quét mã QR' }).getByRole('alert'))
+      .toContainText('Trình duyệt đã chặn camera');
+    await page.getByRole('dialog', { name: 'Quét mã QR' }).getByRole('button', { name: 'Đóng camera' }).first().click();
+    await expect(page.getByRole('dialog', { name: 'Quét mã QR' })).toBeHidden();
+  });
+
+  test('camera mô phỏng quét QR và tự điền mã', async ({ page, context }) => {
+    await loginWorkspace(page, 'TEACHER');
+    await page.getByRole('navigation').getByRole('button', { name: 'Điểm danh' }).click();
+    await page.getByRole('button', { name: 'Tạo mã QR' }).click();
+    const qrImage = (await page.locator('.ws-qr-code svg').screenshot()).toString('base64');
+
+    const student = await context.newPage();
+    await student.addInitScript((base64) => {
+      navigator.mediaDevices.getUserMedia = async () => {
+        const image = new Image();
+        image.src = `data:image/png;base64,${base64}`;
+        await image.decode();
+        const canvas = document.createElement('canvas');
+        canvas.width = image.width;
+        canvas.height = image.height;
+        canvas.getContext('2d')!.drawImage(image, 0, 0);
+        return canvas.captureStream(10);
+      };
+    }, qrImage);
+    await loginWorkspace(student, 'STUDENT', { seatReserved: true });
+    await student.getByRole('navigation').getByRole('button', { name: 'Check-in QR' }).click();
+    await student.getByRole('button', { name: 'Mở camera quét QR' }).click();
+    await expect(student.getByLabel('Mã QR / mã nhập thủ công')).toHaveValue('E2E-QR-TOKEN', { timeout: 10000 });
+    await expect(student.getByRole('dialog', { name: 'Quét mã QR' })).toBeHidden();
+  });
+
   test('giảng viên gửi yêu cầu đặt phòng và tạo buổi học', async ({ page }) => {
     await loginWorkspace(page, 'TEACHER');
     await page.getByRole('navigation').getByRole('button', { name: 'Đặt phòng' }).click();

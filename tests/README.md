@@ -1,6 +1,6 @@
 # Tests (Playwright)
 
-Bộ API/E2E test cho Smart Campus. Test không tạo hoặc sửa schema/database; API tests dùng database đã được cấu hình và chỉ tạo dữ liệu nghiệp vụ cần cho các flow kiểm thử.
+Bộ API/E2E test cho Smart Campus. Khi chạy tại máy, API tests dùng database đã được cấu hình và chỉ tạo dữ liệu nghiệp vụ cần cho các flow kiểm thử. GitHub Actions dùng PostgreSQL tạm riêng và tạo schema từ các migration trong repository.
 
 ## Yêu cầu
 
@@ -24,6 +24,7 @@ npx playwright install chromium
 npm test
 npm run test:api
 npm run test:e2e
+npx playwright test --project=e2e-live
 npm run report
 ```
 
@@ -37,6 +38,8 @@ npm run test:api
 Script cần `psql`, test DB và tài khoản demo/room types đã có. Script chỉ thêm dữ liệu nghiệp vụ, bao gồm tài khoản phụ `teacher2@smartcampus.test`, booking/session/seat/challenge kiểm thử; không thay schema. Nó ghi fixture ID/code vào `.env`. Chạy suite ngay sau provisioning: mã QR hợp lệ hết hạn sau 2 phút, còn session workflow chỉ dùng được từ phút 5 đến trước phút 20. Không chạy trên production DB.
 
 `test:e2e` tự chạy frontend qua `webServer`; có thể đặt `SKIP_WEB_SERVER=true` nếu frontend đã chạy. Các browser workflow dùng API responses được mock để kiểm tra hành vi UI; integration với backend thật được kiểm tra riêng trong project `api`.
+
+`e2e-live` chạy Chromium với frontend và backend thật. Cần tài khoản test student, teacher và admin, `BASE_URL` trỏ frontend và frontend proxy `/api/v1` tới backend đang chạy. Bốn ca kiểm tra đăng nhập/xem phòng-lịch, đặt/hủy phòng, báo cáo/xử lý sự cố và CRUD tài nguyên; test chọn phòng theo dữ liệu hiện có thay vì hard-code ID. CI API job chạy project này sau API suite với `BACKEND_URL=http://localhost:8080`.
 
 ## Biến môi trường API
 
@@ -58,4 +61,4 @@ Script cần `psql`, test DB và tài khoản demo/room types đã có. Script c
 
 Các flow ghi dữ liệu (reservation, incident, resource) nên chạy trên database kiểm thử riêng hoặc dữ liệu đã dành cho test; các endpoint hiện có không hỗ trợ xóa lịch sử incident.
 
-CI API job đọc kết nối từ secrets CI_DB_URL, CI_DB_USER, CI_DB_PASSWORD, CI_JWT_SECRET và không tạo schema/chạy migrations. Fixture SQL chỉ thêm dữ liệu trên test DB; principal CI cần quyền cho fixture setup. JaCoCo HTML/XML report được tạo tại `backend/target/site/jacoco` bằng `mvn verify`.
+CI API job dùng PostgreSQL service tạm, áp dụng `database/migrations/*.sql` theo thứ tự rồi nạp dữ liệu demo và `fixtures/ci-base.sql` trước khi chạy backend/Playwright. Không cần đưa DB cục bộ hoặc `tests/.env` lên GitHub. Backend JUnit context test dùng H2 trong bộ nhớ. JaCoCo HTML/XML report được tạo tại `backend/target/site/jacoco` bằng `mvn verify`.
